@@ -176,6 +176,17 @@ ocsigen -> balat benozol dbuenzli hhugo hnrgrgr jpdeplaix mfp pveber scjung sleg
 xapi-project -> dbuenzli djs55 euanh mcclurmc rdicosmo simonjbeaumont yomimono
 ```
 
+
+### Alternative approach: GitHub urls
+
+An alternative approach, only for GitHub hosted projects, would be to authorise
+[the use the user part of the GitHub repository
+URL](https://github.com/hannesm/conex/blob/github/analysis/maintainer.ml#L37-L91).
+Results after filtering GitHub organisations are not yet satisfactory (but only
+56 packages with no maintainer, [output
+repo](https://github.com/hannesm/opam-repository/tree/github).  This approach
+completely ignores the manually written maintainer field.
+
 ### Conclusion
 
 Manually maintained metadata is easily out of date, and not very useful.  But
