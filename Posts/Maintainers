@@ -7,7 +7,7 @@ abstract: We introduce Conex, the package signing system for opam.  We also desc
 
 ## Conex
 
-My goal is to improve the security of [opam](https://opam.ocaml.org),
+Our goal is to improve the security of [opam](https://opam.ocaml.org),
 the OCaml package manager.  We designed and implemented
 [Conex](https://github.com/hannesm/conex) ([OCaml Workshop
 paper](https://github.com/hannesm/conex-paper/raw/master/paper.pdf), based on
@@ -19,7 +19,7 @@ details or wait for a followup post here :).  Conex also works for private opam
 repositories, and does not depend on git nor GitHub.
 
 The implementation is not yet deployed nor released, but we're working hard to
-get to this point.  My goal from the beginning was to get it deployed, and have
+get to this point.  Our goal was from the beginning to get it deployed, and have
 a sensible trust model: trust should be in the authors of packages, not in the
 repository server, and there is now centralised trust authority (as in X.509).
 Watching the main opam repository for a while indicated that some people are
@@ -189,5 +189,7 @@ of your packages (`packages/your-package/authorisation`) and report any
 inconsistencies.  Each step mentioned above is a single commit, esp with the
 packages [without a
 maintainer](https://github.com/hannesm/opam-repository/commit/e3d57d30f97251334f649f53a4aa25a09a0a2817).
+
+The [full output data](https://berlin.ccc.de/~hannes/20170110conex.txt) of a run is available.
 
 Please report any issues via the [conex issue tracker](https://github.com/hannesm/conex/issues).
