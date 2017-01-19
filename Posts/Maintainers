@@ -12,34 +12,33 @@ the OCaml package manager.  We designed and implemented
 [Conex](https://github.com/hannesm/conex) ([OCaml Workshop
 paper](https://github.com/hannesm/conex-paper/raw/master/paper.pdf), based on
 [The Update Framework](https://theupdateframework.github.io/)), which allows
-package authors to digitally sign their releases, and clients verify the
+package authors to digitally sign their releases, and clients to verify the
 downloaded metadata and tarballs.  Conex also prevents other attacks, such as
-mix-and-match of released package version, rollback attacks, read the paper for
-details or wait for a followup post here :).  Conex also works for private opam
-repositories, and does not depend on git nor GitHub.
+mix-and-match of released package version, and rollback attacks -- read the paper for
+details or wait for a followup post here :)  Conex also works for private opam
+repositories, and does not depend on git or GitHub.
 
 The implementation is not yet deployed nor released, but we're working hard to
-get to this point.  Our goal was from the beginning to get it deployed, and have
+get to that point.  Our goal from the beginning was to get it deployed, with
 a sensible trust model: trust should be in the authors of packages, not in the
-repository server, and there is now centralised trust authority (as in X.509).
+repository server, and there is now centralised trust authority (as in X.509) which we should remove.
 Watching the main opam repository for a while indicated that some people are
 fixing up reverse dependencies, OCaml compiler constraints, build failures (by
-adding patches), etc.  We refer to them as janitors, who keep the repository in
-tact.  We rely on them, but their life will become a bit more complicated: a
-quorum of janitors need to approve unauthorised changes.
+adding patches), etc.  We refer to them as janitors -- they keep the repository intact.  We rely on them, but their life will become a bit more complicated: a
+quorum of janitors will need to approve unauthorised changes. [ what's an "authorised change"? ]
 
 Putting things together: conex adds some public keys into the repository, and
 opam2 ships a set of fingerprints of the janitors (for bootstrapping).  Each
-public key has an identifier connected (e.g. GitHub username), and they share
-their namespace with teams, which contains a set of (non-team) users.  One team
+public key has a connected identifier (e.g. GitHub username), and they share
+their namespace with teams, which contains a set of (non-team) users. [ i can't parse the preceding sentence ] One team
 are the `janitors`, and if a quorum of them approve a change to a resource, this
 change is authenticated.  The team `janitors` is a resource, and thus can be
-modified via the same means.  If something fatal happens (a compromise of conex,
-e.g. leaking the private keys of a quorum of janitors), we need to generate new
+modified via the same means.  If something fatal happens (that is, conex is compromised,
+e.g. by leaking the private keys of a quorum of janitors), we need to generate new
 keys and distribute the new fingerprint in an authenticated way (e.g. GPG-signed
 mail).
 
-Janitors control two resources we have: users and package names.  For each
+Janitors control the two resources we have: users and package names.  For each
 package, there is a set of users authorised to modify it.  Modifications include
 drafting a new release, adding patches, fixing dependencies.  Modifications to
 users and changes to the authorised sets of any package have to be approved by a
@@ -49,36 +48,36 @@ quorum of janitors.
 
 Once an user is authorised for a package, the workflow is to build the release,
 then run a `conex_sign` utility (not yet released, we try to integrate this also
-with existing release managing tools), and then open a PR, to be merged once the
+with existing release management tools), and then open a PR, to be merged once the
 CI is happy.  Signing a release is straightforward: compute a checksum of all
 participating files (everything in `foo/foo.1`) into a `checksums` file, add an
 entry to the `releases` file, and add their hashes in a (per-user) index file,
 which is then digitally signed using the private key on the computer.
 
-Publishing a new package needs interaction with the janitors, they need to
+Publishing a new package already [?] needs interaction from the janitors: they need to
 authorise that the selected package name is a good name for the package (and not
 too general/confusing etc.).  The workflow is slightly adapted: a quorum of
-janitors needs to cryptograpically sign this authorisation (instead of a single
-clicks on the merge button).
+janitors needs to cryptograpically sign this authorisation rather than simply a single
+click on the merge button.
 
-These signing metadata files (keys, teams, authorisations, releases, checksums,
-index) are part of the opam repository.  They have been carefully split to
+These signing metadata files (`keys`, `teams`, `authorisations`, `releases`, `checksums`,
+`index`) are part of the opam repository.  They have been carefully split to
 integrate with the git workflow, and avoid merges (since no digital signature
 will remain valid after a merge).  Adding the signing metadata to the repository
 also avoids an attacker cutting the connection to the signing metadata, while
 updating the opam repository.  Compromises of user keys will happen (and keys
-may get lost): its damage is contained to the authorised packages.  Janitors and
+may get lost): such damage is contained to the authorised packages [ you mean packages authorised by the compromised keys? ].  Janitors and
 other users are continuously watching the opam repository, and will hopefully
 detect weird PRs to packages and revoke the offending key.
 
 ### Verification workflow
 
-Back to the client, they have a set of janitor fingerprints, and download a
-repository.  Now they first verify that the janitor team is backed by a quorum
-of the janitor fingerprints they have.  If this is not the case, we need a fresh
+Back to the client! They have a set of janitor fingerprints, and download a
+repository.  They first verify that the janitor team is backed by a quorum
+of the janitor fingerprints they have.  If this is not the case, they [ ? ] need a fresh
 set of fingerprints.  Once trust in the janitors is established, all keys and
 authorisations are verified, as well as the other signing metadata.  The only
-asymmetric signatures are on the index files (one per user, 340 atm), the rest
+asymmetric signatures are on the index files (one per user, giving 340 currently), the rest
 are SHA256 digests which should be reasonably fast.  On subsequent updates of
 the repository, only the modified packages need to be verified (conex input is
 the patch of the update - it does not rely on git).  Opam2 has support for a
@@ -95,12 +94,12 @@ automated service(s) which verify all signatures and checksums periodically and
 cryptographically sign the global repository state.  To be implemented as a
 MirageOS unikernel.
 
-## Infering maintainers
+## Inferring maintainers
 
 The most important data for conex is who is authorised for a given package.  We
-could have tried to manually write this down, or force each author to create a
+could have tried to manually write this down, or to force each author to create a
 pull request for their packages, but this would be a long process and not
-smooth: The main opam repository has around 1500 unique packages, and 350
+easy: the main opam repository has around 1500 unique packages, and 350
 contributors.  Fortunately, it is a git repository with 5 years of history, and
 over 6700 pull requests.  Each opam file may also contain a `maintainers` entry,
 a list of strings (usually a mail address).
@@ -125,7 +124,7 @@ The metadata output is processed by
 [github_mail](https://github.com/hannesm/conex/blob/3e1fd0f5f94c7e86fca2b73cab4bf914b0b41808/analysis/maintainer.ml#L128-L150):
 we ignore PRs from GitHub organisations `PR.ignore_github`, where commits
 `PR.ignore_pr` are picked from a different user (manually), bad mail addresses,
-and Jeremy's mail address (it is added to too many GitHub ids otherwise).  The
+and Jeremy's [ add link to Jeremy homepage / github page? ] mail address (it is added to too many GitHub ids otherwise).  The
 goal is to have a for an email address a single GitHub id.  318 users are mapped
 (opam repo df2890fa7671ba7baf65fb85897d9c87b34a7d3b), with 404 mail addresses.
 
@@ -180,7 +179,7 @@ xapi-project -> dbuenzli djs55 euanh mcclurmc rdicosmo simonjbeaumont yomimono
 ### Alternative approach: GitHub urls
 
 An alternative approach, only for GitHub hosted projects, would be to authorise
-[the use the user part of the GitHub repository
+[the use of the user part of the GitHub repository
 URL](https://github.com/hannesm/conex/blob/github/analysis/maintainer.ml#L37-L91).
 Results after filtering GitHub organisations are not yet satisfactory (but only
 56 packages with no maintainer, [output
