@@ -396,7 +396,7 @@ maybe I really should get started on implementing a log viewer.
 I would like to have more community contributions to jackline, but the lack of
 documentation (there aren't even a lot of interface files), mixed with a
 non-mainstream programming language, and a convoluted code base, makes me want
-some some code cleanups first, or maybe starting from scratch.
+some code cleanups first, or maybe starting from scratch.
 
 I'm interested in feedback, either via [twitter](https://twitter.com/h4nnes) or
 on the [jackline repository on GitHub](https://github.com/hannesm/jackline).
