@@ -8,7 +8,7 @@ abstract: implement it once to know you can do it.  implement it a second time a
 ![screenshot](https://berlin.ccc.de/~hannes/jackline2.png)
 
 Back in 2014, when we implemented [TLS](https://nqsb.io) in OCaml, at some point
-I was bored with TLS.  I usually need at least two projects at the same time to
+I was bored with TLS.  I usually need at least two projects (but not more than 5) at the same time to
 procrastinate the one I should do with the other one - it is always more fun to
 do what you're not supposed to do.  I started to implement another security
 protocol ([Off-the-record](https://otr.cypherpunks.ca/), resulted in
@@ -153,6 +153,9 @@ every file you write, and keep readers for all versions ever written around.
 My favourite marshalling format (human readable, structured) are still
 S-expressions - luckily there is a
 [sexplib](https://github.com/janestreet/sexplib) in OCaml for handling these.
+Additionally, once the initial configuration file has been created (e.g. interactively with the application), the application
+does no further writes to the config file.  Users can make arbitrary modifications to the file,
+and restart the application (and they can make changes while the application is running).
 
 I also appreciate another property of software: don't ever transmit any data or
 open a network connection unless initiated by the user.  Don't be obviously
@@ -251,7 +254,7 @@ how many characters are already written on the terminal.
 I recommend to look into [notty](https://github.com/pqwy/notty) if you want to
 do terminal graphics in OCaml!
 
-### Application logic
+### Application logic and state
 
 Stepping back, an XMPP client reacts to two input sources: the user input
 (including terminal resize), and network input (or failure).  The output is a
@@ -344,7 +347,7 @@ from the UI to the XMPP task to inject messages and errors.
 
 5. The global variable
 [`xmpp_session`](https://github.com/hannesm/jackline/blob/ec8f8c01d6503bf52be263cd319ef21f2b62ff2e/cli/cli_state.ml#L200)
-should be part of the earlier mentioned `cli_state`.
+should be part of the earlier mentioned `cli_state`, also contacts should be a map, not a Hashtbl (took me some time to learn).
 
 6. Having jackline self-hosted as a MirageOS unikernel.  I've implemented a a
 [telnet](https://github.com/hannesm/telnet) server, there is a [notty
