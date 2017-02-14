@@ -84,7 +84,10 @@ encryption?).  I'll cover both topics in the rest of this article.
 
 Since Mirage3, syslog is integrated (see
 [documentation](http://docs.mirage.io/mirage/Mirage/index.html#type-syslog_config)).
-Some additions are needed in your `config.ml`
+Some additions to your `config.ml` are needed, see [ns
+example](https://github.com/hannesm/ns.nqsb.io/blob/master/config.ml) or
+[marrakech
+example](https://github.com/mirage/marrakech2017/blob/master/config.ml).
 
 ```OCaml
 let logger =
