@@ -158,7 +158,7 @@ does no further writes to the config file.  Users can make arbitrary modificatio
 and restart the application (and they can make changes while the application is running).
 
 I also appreciate another property of software: don't ever transmit any data or
-open a network connection unless initiated by the user (this means no "autoconnect on startup", or "user is typing" indication sent out).  Don't be obviously
+open a network connection unless initiated by the user (this means no autoconnect on startup, or user is typing indications).  Don't be obviously
 fingerprintable.  A more mainstream demand is surely that software should not
 phone home - that's why I don't know how many people are using jackline, reports
 based on friends opinions are hundreds of users, I personally know at least
