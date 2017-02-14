@@ -80,6 +80,25 @@ This is a good first step, but we want more: on the one side integration into
 MirageOS, and a more reliable log stream (what about authentication and
 encryption?).  I'll cover both topics in the rest of this article.
 
+### MirageOS integration
+
+Since Mirage3, syslog is integrated (see
+[documentation](http://docs.mirage.io/mirage/Mirage/index.html#type-syslog_config)).
+Some additions are needed in your `config.ml`
+
+```OCaml
+let logger =
+  syslog_udp (* or _tcp or _tls *)
+    (syslog_config ~truncate:1484 "my_first_unikernel"
+       (Ipaddr.V4.of_string_exn "10.0.0.1")) (* your log host *)
+    stack
+
+let () =
+  register "my_first_unikernel" [
+    foreign ~deps:[abstract logger]
+    ...
+```
+
 ### Reliable syslog
 
 The old BSD syslog RFC is obsoleted by [RFC
@@ -155,10 +174,7 @@ links to their hashes (with a 0 appended: ``ln -s cacert.pem `openssl x509
 infrastructure (CA cert, a server certificate for syslog-ng, and a client
 certificate for my MirageOS unikernel).
 
-I added the boilerplate code to [this blog
-software](https://github.com/hannesm/Canopy/commit/0dca7a83be6fe55b89f8f4daaf6aac69adf7fd0f),
-surely this should be massaged and moved up the stack, thus it is easily
-available for other MirageOS unikernels.  It is running since a week like a
+It is running since a week like a
 charm (already collected 700KB of HTTP access log), and feels much better than
 previous ad-hoc solutions to exfiltrate log data.
 
