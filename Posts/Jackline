@@ -14,8 +14,7 @@ do what you're not supposed to do.  I started to implement another security
 protocol ([Off-the-record](https://otr.cypherpunks.ca/), resulted in
 [ocaml-otr](https://hannesm.github.io/ocaml-otr/doc/Otr.html)) on my own,
 applying what I learned while co-developing TLS with David.  I was eager to
-actually deploy our TLS stack: using it with a web server (see [this
-post](https://hannes.nqsb.io/Posts/nqsbWebsite)) is fun, but only using one half
+actually deploy our TLS stack: using it with a web server (see [this post](https://hannes.nqsb.io/Posts/nqsbWebsite)) is fun, but only using one half
 of the state machine (server side) and usually short-lived connections
 (discovers lots of issues with connection establishment) - not the client side
 and no long living connection (which may discover other kinds of issues, such as
@@ -34,8 +33,7 @@ commit is 13th November 2014), a terminal based XMPP client in
 [OCaml](https://hannes.nqsb.io/Posts/OCaml).  This is a report of a
 work-in-progress (unreleased, but publicly available!) software project.  I'm
 not happy with the code base, but neverthelss consider it to be a successful
-project: dozens of friends are using it (no exact numbers), I got [contributions
-from other people](https://github.com/hannesm/jackline/graphs/contributors)
+project: dozens of friends are using it (no exact numbers), I got [contributions from other people](https://github.com/hannesm/jackline/graphs/contributors)
 (more than 25 commits from more than 8 individuals), I use it on a daily basis
 for lots of personal communication.
 
@@ -65,8 +63,7 @@ getting the same messages), and thus moved away from the open standard.
 
 Authentication is done via a TLS channel (where your client should authenticate
 the server), and SASL that the server authenticates your client.  I
-[investigated in
-2008](https://berlin.ccc.de/~hannes/secure-instant-messaging.pdf) (in German)
+[investigated in 2008](https://berlin.ccc.de/~hannes/secure-instant-messaging.pdf) (in German)
 which clients and servers use which authentication methods (I hope the state of
 certificate verification improved in the last decade).
 
@@ -77,16 +74,14 @@ if your long-term (stored on disk) asymmetric keys get seized or stolen, they
 are not sufficient to decrypt recorded sessions (you can't derive the session
 key from the asymmetric keys) -- but the encrypted channel is still
 authenticated (once you verified the public key via a different channel or a
-shared secret (using the [Socialist millionaires
-problem](https://en.wikipedia.org/wiki/Socialist_millionaire))).
+shared secret, using the [Socialist millionaires problem](https://en.wikipedia.org/wiki/Socialist_millionaire)).
 
 OTR does not support offline messages (the session keys may already be destroyed
 by the time the communication partner reconnects and receives the stored
 messages), and thus recently [omemo](https://conversations.im/omemo/) was
 developed.  Other messaging protocols (Signal, Threema) are not really open,
 support no federation, but have good support for group encryption and offline
-messaging.  (There is a [nice overview over secure messaging and
-threats.](https://www.cypherpunks.ca/~iang/pubs/secmessaging-oakland15.pdf))
+messaging.  (There is a [nice overview over secure messaging and threats.](https://www.cypherpunks.ca/~iang/pubs/secmessaging-oakland15.pdf))
 
 There is (AFAIK) no encrypted group messaging via XMPP; also the XMPP server
 contains lots of sensible data: your address book (buddy list), together with
@@ -118,11 +113,8 @@ federated operations without a centralised trust authority.
 
 Large old code basis usually gather dust and getting bitrot - and if you add
 patch by patch from random people on the Internet, you've to deal with the most
-common bug: insufficient checking of input (or output data, [if you encrypt only
-the plain body, but not the marked up
-one](https://dev.gajim.org/gajim/gajim-plugins/issues/145)).  In some
-programming languages this easily [leads to execution of remote code](
-https://pidgin.im/news/security/?id=64), other programming languages steal the
+common bug: insufficient checking of input (or output data, [if you encrypt only the plain body, but not the marked up one](https://dev.gajim.org/gajim/gajim-plugins/issues/145)).  In some
+programming languages this easily [leads to execution of remote code](https://pidgin.im/news/security/?id=64), other programming languages steal the
 work from programmers by deploying automated memory management (finally machines
 take our work away! :)) - also named garbage collection, often used together
 with automated bounds checking -- this doesn't mean that you're safe - there are
@@ -137,8 +129,7 @@ thunderbird, firefox, mplayer, mupdf), but stick mostly to terminal
 applications.  I additionally don't use any terminal multiplexer (saw too many
 active `screen` sessions on remote servers where people left root shells open).
 
-The [goal was from the
-beginning](https://github.com/hannesm/jackline/commit/9322ceefa9a331fa92a6bf253e8d8f010da2229c)
+The [goal was from the beginning](https://github.com/hannesm/jackline/commit/9322ceefa9a331fa92a6bf253e8d8f010da2229c)
 to write a "minimalistic graphical user interface for a secure (fail hard)
 and trustworthy XMPP client".  By *fail hard* I mean exactly that: if it can't
 authenticate the server, don't send the password.  If there is no
@@ -178,8 +169,7 @@ friends logged in multiple times with wrongly set priorities - and end-to-end
 encryption.  I don't need inline HTML, avatar images, my currently running
 music, leaking timezone information, etc.  I explicitly don't want to import any
 private key material from other clients and libraries, because I want to ensure
-that the key was generated by a good random number generator (read [David's blog
-article](https://mirage.io/blog/mirage-entropy) on randomness and entropy).
+that the key was generated by a good random number generator (read [David's blog article](https://mirage.io/blog/mirage-entropy) on randomness and entropy).
 
 The security story is crucial: always do strict certificate validation, fail
 hard, make it noticable by the user if they're doing insecure communication.
@@ -189,13 +179,11 @@ a set of resources used, a session count, and blurred timestamps (accuracy: day)
 when the publickey was initially used and when it was used the last time.
 
 I'm pragmatic - if there is some server (or client) deployed out there which
-violates (my interpretation of) the specification, I'm happy to [implement
-workarounds](https://github.com/hannesm/ocaml-otr/issues/10).  Initially I
+violates (my interpretation of) the specification, I'm happy to [implement workarounds](https://github.com/hannesm/ocaml-otr/issues/10).  Initially I
 worked roughly one day a week on jackline.
 
 To not release the software for some years was something I learned from the
-[slime](https://common-lisp.net/project/slime/) project ([watch Luke's
-presentation from 2013](https://www.youtube.com/watch?v=eZDWJfB9XY4)) - if
+[slime](https://common-lisp.net/project/slime/) project ([watch Luke's presentation from 2013](https://www.youtube.com/watch?v=eZDWJfB9XY4)) - if
 there's someone complaining about an issue, fix it within 10 minutes and ask
 them to update.  This only works if each user compiles the git version anyways.
 
@@ -234,15 +222,13 @@ black and white background.
 
 ## Code
 
-Initially I targeted GTK with OCaml, but that excursion only lasted [two
-weeks](https://github.com/hannesm/jackline/commit/17b674130f7b1fcf2542eb5e0911a40b81fc724e),
+Initially I targeted GTK with OCaml, but that excursion only lasted [two weeks](https://github.com/hannesm/jackline/commit/17b674130f7b1fcf2542eb5e0911a40b81fc724e),
 when I switched to a [lambda-term](https://github.com/diml/lambda-term) terminal
 interface.
 
 ### UI
 
-The lambda-term interface survived for a good year (until [26th Jan
-2016](https://github.com/hannesm/jackline/commit/47ae690eb720cbb89323d98b0f7af17bfaea26e7)),
+The lambda-term interface survived for a good year (until [26th Jan 2016](https://github.com/hannesm/jackline/commit/47ae690eb720cbb89323d98b0f7af17bfaea26e7)),
 when I started to use [notty](https://github.com/pqwy/notty) - developed by
 David - using a decent [unicode library](http://erratique.ch/software/uutf).
 
@@ -275,16 +261,14 @@ disk, an error handler
 which resets the state upon a connection failure, another task which waits for
 user input
 ([`read_terminal`](https://github.com/hannesm/jackline/blob/ec8f8c01d6503bf52be263cd319ef21f2b62ff2e/cli/cli_input.ml#L169)),
-one waiting for network input ([`Connect`, including reconnecting
-timers](https://github.com/hannesm/jackline/blob/ec8f8c01d6503bf52be263cd319ef21f2b62ff2e/cli/cli_state.ml#L202)),
+one waiting for network input ([`Connect`, including reconnecting timers](https://github.com/hannesm/jackline/blob/ec8f8c01d6503bf52be263cd319ef21f2b62ff2e/cli/cli_state.ml#L202)),
 one to call out the notification hooks
 ([`Notify`](https://github.com/hannesm/jackline/blob/ec8f8c01d6503bf52be263cd319ef21f2b62ff2e/cli/cli_state.ml#L100)),
 etc.  The main task is simple: wait for input, process input (producing a new
 state), render the state, and recursively call itself
 ([`loop`](https://github.com/hannesm/jackline/blob/ec8f8c01d6503bf52be263cd319ef21f2b62ff2e/cli/cli_client.ml#L371)).
 
-Only recently I solved the copy and paste issue by [delaying all redraws by
-40ms](https://github.com/hannesm/jackline/commit/cab34acab004023911997ec9aee8b00a976af7e4),
+Only recently I solved the copy and paste issue by [delaying all redraws by 40ms](https://github.com/hannesm/jackline/commit/cab34acab004023911997ec9aee8b00a976af7e4),
 and canceling if another redraw is scheduled.
 
 The whole
@@ -303,35 +287,31 @@ animated cats).
 
 ### Road ahead
 
-Common feature requests are: [omemo
-support](https://github.com/hannesm/jackline/issues/153), [IRC
-support](https://github.com/hannesm/jackline/issues/104), [support for multiple
-accounts](https://github.com/hannesm/jackline/issues/115) (TBH, these are all
+Common feature requests are: [omemo support](https://github.com/hannesm/jackline/issues/153),
+[IRC support](https://github.com/hannesm/jackline/issues/104),
+[support for multiple accounts](https://github.com/hannesm/jackline/issues/115)
+(tbh, these are all
 things I'd like to have as well).
 
 But there's some mess to clean up:
 
 1. The [XMPP library](https://github.com/ermine/xmpp) makes heavy use of
 functors (to abstract over the concrete IO, etc.), and embeds IO deep inside it.
-I do prefer (see e.g. [our TLS paper](https://usenix15.nqsb.io), or [my ARP
-post](https://hannes.nqsb.io/Posts/ARP)) these days to have a pure interface for
+I do prefer (see e.g. [our TLS paper](https://usenix15.nqsb.io), or [my ARP post](https://hannes.nqsb.io/Posts/ARP)) these days to have a pure interface for
 the protocol implementation, providing explicit input (state, event, data), and
 output (state, action, potentially data to send on network, potentially data to
-process by the application).  The [sasl
-implementation](https://github.com/hannesm/xmpp/blob/eee18bd3dd343550169969c0b45548eafd51cfe1/src/sasl.ml)
-is partial and deeply embedded.  The XML parser is as well deeply embedded (and [has
-some
-issues](https://github.com/hannesm/jackline/issues/8#issuecomment-67773044)).
+process by the application).  The [sasl implementation](https://github.com/hannesm/xmpp/blob/eee18bd3dd343550169969c0b45548eafd51cfe1/src/sasl.ml)
+is partial and deeply embedded.  The XML parser is as well deeply embedded (and
+[has some issues](https://github.com/hannesm/jackline/issues/8#issuecomment-67773044)).
 The library needs to be torn apart (something I procrastinate since more than
 a year).  Once it is pure, the application can have full control over when to
 call IO (and esp use the same protocol implementation as well for registering a
-new account - [currently not
-supported](https://github.com/hannesm/jackline/issues/12)).
+new account - [currently not supported](https://github.com/hannesm/jackline/issues/12)).
 
 2. On the frontend side (the `cli` subfolder), there is too much knowledge of
 XMPP.  It should be more general, and be reusable (some bits and pieces are
 notty utilities, such as wrapping a string to fit into a text box of specific
-width (see
+width, see
 [`split_unicode`](https://github.com/hannesm/jackline/blob/ec8f8c01d6503bf52be263cd319ef21f2b62ff2e/cli/cli_support.ml#L22)).
 
 3. The command processing engine itself is 1300 lines (including ad-hoc string
@@ -350,8 +330,8 @@ from the UI to the XMPP task to inject messages and errors.
 should be part of the earlier mentioned `cli_state`, also contacts should be a map, not a Hashtbl (took me some time to learn).
 
 6. Having jackline self-hosted as a MirageOS unikernel.  I've implemented a a
-[telnet](https://github.com/hannesm/telnet) server, there is a [notty
-branch](https://github.com/pqwy/notty/tree/mirage) be used with the telnet
+[telnet](https://github.com/hannesm/telnet) server, there is a
+[notty branch](https://github.com/pqwy/notty/tree/mirage) be used with the telnet
 server.  But there is (right now) no good story for persistent mutable storage.
 
 7. Jackline predates some very elegant libraries, such as
@@ -390,8 +370,7 @@ project where I publish early and push often.  I've met several people (whom I
 don't think I know personally) in the multi-user chatroom
 `jackline@conference.jabber.ccc.de`, and fixed bugs, discussed features.
 
-When introducing [customisable
-colours](https://github.com/hannesm/jackline/commit/40bec5efba81061cc41df891cadd282120e16816),
+When introducing [customisable colours](https://github.com/hannesm/jackline/commit/40bec5efba81061cc41df891cadd282120e16816),
 the proximity to a log viewer became again clear to me - configurable colours
 are for severities such as `Success`, `Warning`, `Info`, `Error`, `Presence` -
 maybe I really should get started on implementing a log viewer.
