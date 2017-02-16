@@ -1,0 +1,365 @@
+---
+title: Conex, establish trust in community repositories
+author: hannes
+tags: package signing, security, overview
+abstract: Conex is a library to verify and attest package release integrity and authenticity through the use of cryptographic signatures.
+---
+
+Less than two years after the initial proposal, we're happy to present conex
+0.9.0.  Pleas note that this is still work in progress, to be deployed with opam
+2.0 and the [opam repository](https://github.com/ocaml/opam-repository).
+
+![screenshot](https://berlin.ccc.de/~hannes/conex.png)
+
+[Conex](https://github.com/hannesm/conex) is a library to verify and attest release integrity and
+authenticity of a community repository through the use of cryptographic signatures.
+
+Packages are collected in a community repository to provide an index and
+allowing cross-references.  Authors submit their packages to the repository. which
+is curated by a team of janitors.  Information
+about a package stored in a repository includes: license, author, releases,
+their dependencies, build instructions, url, tarball checksum.  When someone
+publishes a new package, the janitors integrate it into the repository, if it
+compiles and passes some validity checks.  For example, its name must not be misleading,
+nor may it be too general.
+
+Janitors keep an eye on the repository and fix emergent failures.  A new
+compiler release, or a release of a package on which other packages depend, might break the compilation of
+a package.  Janitors usually fix these problems by adding a patch to the build script, or introducing
+a version constraint in the repository.
+
+*Conex* ensures that every release of each package has been approved by its author or a quorum of janitors.
+A conex-aware client initially verifies the repository using janitor key fingerprints as anchor.
+Afterwards, the on-disk repository is trusted, and every update is verified (as a patch) individually.
+This incremental verification is accomplished by ensuring all resources
+that the patch modifies result in a valid repository with
+sufficient approvals.  Additionally, monotonicity is preserved by
+embedding counters in each resource, and enforcing a counter
+increment after modification.
+This mechanism avoids rollback attacks, when an
+attacker presents you an old version of the repository.
+
+A timestamping service (NYI) will periodically approve a global view of the
+verified repository, together with a timestamp.  This is then used by the client
+to prevent mix-and-match attacks, where an attacker mixes some old packages and
+some new ones.  Also, the client is able to detect freeze attacks, since at
+least every day there should be a new signature done by the timestamping service.
+
+The trust is rooted in digital signatures by package authors.  The server which
+hosts the repository does not need to be trusted.  Neither does the host serving
+release tarballs.
+
+If a single janitor would be powerful enough to approve a key for any author,
+compromising one janitor would be sufficient to enroll any new identities,
+modify dependencies, build scripts, etc.  In conex, a quorum of janitors (let's
+say 3) have to approve such changes.  This is different from current workflows,
+where a single janitor with access to the repository can merge fixes.
+
+Conex adds metadata, in form of resources, to the repository to ensure integrity and
+authenticity.  There are different kinds of resources:
+
+- *Authors*, consisting of a unique identifier, public key(s), accounts.
+- *Teams*, sharing the same namespace as authors, containing a set of members.
+- *Authorisation*, one for each package, describing which identities are authorised for the package.
+- *Package index*, for each package, listing all releases.
+- *Release*, for each release, listing checksums of all data files.
+
+Modifications to identities and authorisations need to be approved by a quorum
+of janitors, package index and release files can be modified either by an authorised
+id or by a quorum of janitors.
+
+## Documentation
+
+[API documentation](https://hannesm.github.io/conex/doc/) is
+available online, also a [coverage
+report](https://hannesm.github.io/conex/coverage/).
+
+We presented an [abstract at OCaml
+2016](https://github.com/hannesm/conex-paper/raw/master/paper.pdf) about an
+earlier design.
+
+Another article on an [earlier design (from
+2015)](http://opam.ocaml.org/blog/Signing-the-opam-repository/) is also
+available.
+
+Conex is inspired by [the update
+framework](https://theupdateframework.github.io/), especially on their [CCS 2010
+paper](https://isis.poly.edu/~jcappos/papers/samuel_tuf_ccs_2010.pdf), and
+adapted to the opam repository.
+
+The [TUF
+spec](https://github.com/theupdateframework/tuf/blob/develop/docs/tuf-spec.txt)
+has a good overview of attacks and threat model, both of which are shared by conex.
+
+## What's missing
+
+- See [issue 7](https://github.com/hannesm/conex/issues/7) for a laundry list
+- Timestamping service
+- Key revocation and rollover
+- Tool to approve a PR (for janitors)
+- Camelus like opam-repository check bot
+- Integration into release management systems
+- Testing of opam2 [`repository validation command`](http://opam.ocaml.org/doc/2.0/Manual.html#configfield-repository-validation-command) and `conex_verify`
+
+## Getting started
+
+At the moment, our [opam repository](https://github.com/ocaml/opam-repository)
+does not include any metadata needed for signing.  We're in a bootstrap phase:
+we need you to generate a keypair, claim your packages, and approve your releases.
+
+We cannot verify the repository yet, but opam2 will have support for a
+[`repository validation command`](http://opam.ocaml.org/doc/2.0/Manual.html#configfield-repository-validation-command),
+builtin, which should then call out to `conex_verify` (there is a `--nostrict`
+flag for the impatient).
+
+To reduce the manual work, we analysed 7000 PRs of the opam repository within
+the last 4.5 years (more details [here](https://hannes.nqsb.io/Posts/Maintainers).
+This resulted in an educated guess who are the people
+modifying each package, which we use as a basis whom to authorise for
+which packages.  Please check with `conex_author status` below whether your team
+membership and authorised packages were inferred correctly.
+
+Each individual author - you - need to generate their private key, submit
+their public key and starts approving releases (and old ones after careful
+checking that the build script, patches, and tarball checksum are valid).
+Each resource can be approved in multiple versions at the same time.
+
+### Installation
+
+```bash
+$ git clone -b auth https://github.com/hannesm/opam-repository.git repo //TODO: remove once [PR 8494](https://github.com/ocaml/opam-repository/pull/8494) is merged
+$ opam pin add opam-file-format --dev-repo
+$ opam pin add conex https://github.com/hannesm/conex.git //TODO: remove once [PR 8493](https://github.com/ocaml/opam-repository/pull/8493) is merged
+$ opam install conex
+$ cd repo
+```
+
+This will install conex, namely command line utilities, `conex_author` and
+`conex_verify_nocrypto`.  All files read and written by conex are in the usual
+opam file format.  This means can always manually modify them (but be careful,
+modifications need to increment counters, add checksums, and be signed).  Conex
+does not deal with git, you have to manually `git add` files and open pull
+requests.
+
+### Author enrollment
+
+For the opam repository, we will use GitHub ids as conex ids.  Thus, your conex
+id and your GitHub id should match up.
+
+```bash
+repo$ conex_author init --repo ~/repo --id hannesm
+Created keypair hannesm.  Join teams, claim your packages, sign your approved resources and open a PR :)
+```
+
+This attempts to parse `~/repo/id/hannesm`, errors if it is a team or an author
+with a publickey.  Otherwise it generates a keypair, writes the private part as
+`home.hannes.repo.hannesm.private` (the absolute path separated by dots,
+followed by your id, and `private` - if you move your repository, rename your
+private key) into `~/.conex/`, the checksums of the public part and your
+accounts into `~/repo/id/hannesm`.  See `conex_author help init` for more
+options (esp. additional verbosity `-v` can be helpful).
+
+```bash
+repo$ git status -s
+ M id/hannesm
+
+repo$ git diff //abbreviated output
+-  ["counter" 0x0]
++  ["counter" 0x1]
+
+-  ["resources" []]
++  [
++    "resources"
++    [
++      [
++        ["typ" "key"]
++        ["name" "hannesm"]
++        ["index" 0x1]
++        ["digest" ["SHA256" "ht9ztjjDwWwD/id6LSVi7nKqVyCHQuQu9ORpr8Zo2aY="]]
++      ]
++      [
++        ["typ" "account"]
++        ["name" "hannesm"]
++        ["index" 0x2]
++        ["digest" ["SHA256" "aCsktJ5M9PI6T+m1NIQtuIFYILFkqoHKwBxwvuzpuzg="]]
++      ]
+```
+
+### Status
+
+If you have a single identity and contribute to a single signed opam repository,
+you don't need to specify `--id` or `--repo` from now on.
+
+The `status` subcommand presents an author-specific view on the repository.  It
+lists the own public keys, team membership, queued resources, and authorised
+packages.
+
+The opam repository is in a transitionary state, we explicitly pass `--quorum
+0`, which means that every checksum is valid (approved by a quorum of 0
+janitors).
+
+```bash
+repo$ conex_author status --quorum 0 arp
+author hannesm #0 (created 0) verification error: author hannesm does not have any public keys 3 resources, 0 queued
+account GitHub hannesm not approved account hannesm
+account email hannes@mehnert.org not approved account hannesm
+package arp authorisation packages arp, authorised ids [hannesm] missing
+conex_author: [ERROR] package index arp was not found in repository
+```
+
+This shows your key material and accounts, team membership and packages you are
+authorised to modify (inferred as described
+[here](https://hannes.nqsb.io/Posts/Maintainer).
+
+The `--noteam` argument limits the package list to only these you are personally
+authorised for.  The `--id` argument presents you with a view of another author,
+or from a team perspective.  The positional argument is a prefix matching on
+package names (leave empty for all).
+
+### Resource approval
+
+Each resource needs to be approved individually.  Each author has a local queue
+for to-be-signed resources, which is extended with `authorisation`, `init`,
+`key`, `release`, and `team` (all have a `--dry-run` flag).  The queue can be
+dropped using `conex_author reset`.  Below shown is `conex_author sign`, which
+let's you interactively approve queued resources and cryptopgraphically signs
+your approved resources afterwards.
+
+The output of `conex_author status` listed an authorisation for `conf-gsl`,
+which I don't feel responsible for.  Let's drop my privileges:
+
+```bash
+repo$ conex_author authorisation conf-gsl --remove -m hannesm
+modified authorisation and added resource to your queue.
+```
+
+I checked my arp release careful (checksums of tarballs are correct, opam files
+do not execute arbitrary shell code, etc.), and approve this package and its
+single release:
+
+```bash
+repo$ conex_author release arp
+conex_author.native: [WARNING] package index arp was not found in repository
+conex_author.native: [WARNING] release arp.0.1.1 was not found in repository
+wrote release and added resources to your queue.
+```
+
+Once finished with joining and leaving teams (using the `team` subcommand),
+claiming packages (using the `authorisation` subcommand), and approve releases
+(using the `release` subcommand), you have to cryprographically sign your queued
+resource modifications:
+
+```bash
+repo$ conex_author sign
+release arp.0.1.1 #1 (created 1487269425)
+[descr: SHA256: aCsNvcj3cBKO0GESWG4r3AzoUEnI0pHGSyEDYNPouoE=;
+opam: SHA256: nqy6lD1UP+kXj3+oPXLt2VMUIENEuHMVlVaG2V4z3p0=;
+url: SHA256: FaUPievda6cEMjNkWdi0kGVK7t6EpWGfQ4q2NTSTcy0=]
+approved (yes/No)?
+package arp #1 (created 1487269425) [arp.0.1.1]
+approved (yes/No)?y
+authorisation conf-gsl #1 (created 0) empty
+approved (yes/No)?y
+wrote hannesm to disk
+
+repo$ conex_author status --quorum 0 arp
+author hannesm #1 (created 0) verified 7 resources, 0 queued
+4096 bit RSA key created 1487094175 approved, SHA256: ht9ztjjDwWwD/id6LSVi7nKqVyCHQuQu9ORpr8Zo2aY=
+account GitHub hannesm approved
+account email hannes@mehnert.org approved
+package arp authorisation approved package index approved
+release arp.0.1.1: approved
+```
+
+If you now modify anything in `packages/arp` (add subdirectories, modify opam,
+etc.), this will not be automatically approved (see below for how to do this).
+
+You manually need to `git add` some created files.
+
+```bash
+repo$ git status -s
+ M id/hannesm
+ M packages/conf-gsl/authorisation
+?? packages/arp/arp.0.1.1/release
+?? packages/arp/package
+
+repo$ git add packages/arp/arp.0.1.1/release packages/arp/package
+repo$ git commit -m "hannesm key enrollment and some fixes" id packages
+```
+
+Now push this to your fork, and open a PR on opam-repository!
+
+### Editing a package
+
+If you need to modify a released package, you modify the opam file (as before,
+e.g. introducing a conflict with a dependency), and then approve the
+modifications.  After your local modifications, `conex_author status` will
+complain:
+
+```bash
+repo$ conex_author status arp --quorum 0
+package arp authorisation approved package index approved
+release arp.0.1.1: checksums for arp.0.1.1 differ, missing on disk: empty, missing in checksums file: empty, checksums differ: [have opam: SHA256: QSGUU9HdPOrwoRs6XJka4cZpd8h+8NN1Auu5IMN8ew4= want opam: SHA256: nqy6lD1UP+kXj3+oPXLt2VMUIENEuHMVlVaG2V4z3p0=]
+
+repo$ conex_author release arp.0.1.1
+released and added resources to your resource list.
+
+repo$ conex_author sign
+release arp.0.1.1 #1 (created 1487269943)
+[descr: SHA256: aCsNvcj3cBKO0GESWG4r3AzoUEnI0pHGSyEDYNPouoE=;
+opam: SHA256: QSGUU9HdPOrwoRs6XJka4cZpd8h+8NN1Auu5IMN8ew4=;
+url: SHA256: FaUPievda6cEMjNkWdi0kGVK7t6EpWGfQ4q2NTSTcy0=]
+approved (yes/No)? y
+wrote hannesm to disk
+```
+
+The `release` subcommand recomputed the checksums, incremented the counter, and
+added it to your queue.  The `sign` command signed the approved resource.
+
+```bash
+repo$ git status -s
+ M id/hannesm
+ M packages/arp/arp.0.1.1/opam
+ M packages/arp/arp.0.1.1/package
+
+repo$ git commit -m "fixed broken arp package" id packages
+```
+
+### Janitor tools
+
+Janitors need to approve teams, keys, accounts, and authorisations.
+
+To approve resources which are already in the repository on disk,
+the `key` subcommand queues approval of keys and accounts of the provided author:
+
+```bash
+repo$ conex_author key avsm
+added keys and accounts to your resource list.
+```
+
+The `authorisation` subcommand, and `team` subcommand behave similarly for
+authorisations and teams.
+
+Bulk operations are supported as well:
+
+```bash
+conex_author authorisation all
+```
+
+This will approve all authorisations of the repository which are not yet
+approved by you.  Similar for the `key` and `team` subcommands, which also
+accept `all`.
+
+Don't forget to `conex_author sign` afterwards (or `yes | conex_author sign`).
+
+### Verification
+
+The two command line utlities, `conex_verify_openssl` and
+`conex_verify_nocrypto` contain the same logic and same command line arguments.
+
+For bootstrapping purposes (`nocrypto` is an opam package with dependencies),
+`conex_verify_openssl` relies on the openssl command line tool (version 1.0.0
+and above) for digest computation and verification of the RSA-PSS signature.
+
+The goal is to use the opam2 provided hooks, but before we have signatures we
+cannot enable them.
