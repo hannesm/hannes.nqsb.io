@@ -1,0 +1,104 @@
+---
+title: Who maintains package X?
+author: hannes
+tags: package signing, security
+abstract: We describe why manual gathering of metadata is out of date, and version control systems are awesome.
+---
+
+A very important data point for conex, the new opam signing utility, is who is authorised for a given package.  We
+could have written this manually down, or force each author to create a
+pull request for their packages, but this would be a long process and not
+easy: the main opam repository has around 1500 unique packages, and 350
+contributors.  Fortunately, it is a git repository with 5 years of history, and
+over 6900 pull requests.  Each opam file may also contain a `maintainers` entry,
+a list of strings (usually a mail address).
+
+The data sources we correlate are the `maintainers` entry in opam file, and who
+actually committed in the opam repository.  This is inspired by [some GitHub
+discussion](https://github.com/ocaml/opam/issues/2693).
+
+### GitHub id and email address
+
+For simplicity, since conex uses any (unique) identifier for authors, and the opam
+repository is hosted on GitHub, we use a GitHub id as author identifier.
+Maintainer information is an email address, thus we need a mapping between them.
+
+We wrote a [shell
+script](https://raw.githubusercontent.com/hannesm/conex/master/analysis/loop-prs.sh)
+to find all PR merges, their GitHub id (in a brittle way: using the name of the
+git remote), and email address of the last commit.  It also saves a diff of the
+PR for later.  This results in 6922 PRs (opam repository version 38d908dcbc58d07467fbc00698083fa4cbd94f9d).
+
+The metadata output is processed by
+[github_mail](https://github.com/hannesm/conex/blob/dbdfc5337c97d62edc74f1c546023bcb5e719343/analysis/maintainer.ml#L134-L156):
+we ignore PRs from GitHub organisations `PR.ignore_github`, where commits
+`PR.ignore_pr` are picked from a different author (manually), bad mail addresses,
+and [Jeremy's](https://github.com/yallop) mail address (it is added to too many GitHub ids otherwise).  The
+goal is to have a for an email address a single GitHub id.  329 authors with 416 mail addresses are mapped.
+
+### Maintainer in opam
+
+As mentioned, lots of packages contain a `maintainers` entry.  In
+[`maintainers`](https://github.com/hannesm/conex/blob/dbdfc5337c97d62edc74f1c546023bcb5e719343/analysis/maintainer.ml#L40-L68)
+we extract the mail addresses of the [most recently released opam
+file](https://github.com/hannesm/conex/blob/dbdfc5337c97d62edc74f1c546023bcb5e719343/analysis/maintainer.ml#L70-L94).
+Some hardcoded matches are teams which do not properly maintain the maintainers
+field (such as mirage and xapi-project ;).  We're open for suggestions to extend
+this massaging to the needs.  Additionally, the contact at ocamlpro mail address
+was used for all packages before the maintainers entry was introduced (based on
+a discussion with Louis Gesbert).  132 packages with empty maintainers.
+
+### Fitness
+
+Combining these two data sources, we hoped to find a strict small set of whom to
+authorise for which package.  Turns out some people use different mail addresses
+for git commits and opam maintainer entries, which [are be easily
+fixed](https://github.com/hannesm/conex/blob/dbdfc5337c97d62edc74f1c546023bcb5e719343/analysis/maintainer.ml#L233-L269).
+
+While [processing the full diffs of each
+PR](https://github.com/hannesm/conex/blob/dbdfc5337c97d62edc74f1c546023bcb5e719343/analysis/maintainer.ml#L169-L205)
+(using the diff parser of conex mentioned above), ignoring the 44% done by
+[janitors](https://github.com/hannesm/conex/blob/dbdfc5337c97d62edc74f1c546023bcb5e719343/analysis/maintainer.ml#L158-L165)
+(a manually created set by looking at log data, please report if wrong), we
+categorise the modifications: authorised modification (the GitHub id is
+authorised for the package), modification by an author to a team-owned package
+(propose to add this author to the team), modification of a package where no
+GitHub id is authorised, and unauthorised modification.  We also ignore packages
+which are no longer in the opam repository.
+
+2766 modifications were authorised, 418 were team-owned, 452 were to packages
+with no maintainer, and 570 unauthorised.  This results in 125 unowned packages.
+
+Out of the 452 modifications to packages with no maintainer, 75 are a global
+one-to-one author to package relation, and are directly authorised.
+
+Inference of team members is an overapproximation (everybody who committed
+changes to their packages), additionally the janitors are missing.  We will have
+to fill these manually.
+
+```
+alt-ergo -> OCamlPro-Iguernlala UnixJunkie backtracking bobot nobrowser
+janestreet -> backtracking hannesm j0sh rgrinberg smondet
+mirage -> MagnusS dbuenzli djs55 hannesm hnrgrgr jonludlam mato mor1 pgj pqwy pw374 rdicosmo rgrinberg ruhatch sg2342 talex5 yomimono
+ocsigen -> balat benozol dbuenzli hhugo hnrgrgr jpdeplaix mfp pveber scjung slegrand45 smondet vasilisp
+xapi-project -> dbuenzli djs55 euanh mcclurmc rdicosmo simonjbeaumont yomimono
+```
+
+
+### Alternative approach: GitHub urls
+
+An alternative approach (attempted earlier) working only for GitHub hosted projects, is to authorise
+[the use of the user part of the GitHub repository
+URL](https://github.com/hannesm/conex/blob/github/analysis/maintainer.ml#L37-L91).
+Results after filtering GitHub organisations are not yet satisfactory (but only
+56 packages with no maintainer, [output repo](https://github.com/hannesm/opam-repository/tree/github).  This approach
+completely ignores the manually written maintainer field.
+
+### Conclusion
+
+Manually maintained metadata is easily out of date, and not very useful.  But
+combining automatically created metadata with manually, and some manual tweaking
+leads to reasonable data.
+
+The resulting authorised inference is available [in this branch]([output
+repo](https://github.com/hannesm/opam-repository/tree/auth).
