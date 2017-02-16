@@ -363,3 +363,7 @@ and above) for digest computation and verification of the RSA-PSS signature.
 
 The goal is to use the opam2 provided hooks, but before we have signatures we
 cannot enable them.
+
+I'm interested in feedback, please open an issue on the [conex
+repository](https://github.com/hannesm/conex).  This article itself is stored as
+Markdown [in a different repository](https://github.com/hannesm/hannes.nqsb.io).
