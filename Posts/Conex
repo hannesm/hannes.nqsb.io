@@ -126,10 +126,13 @@ Each resource can be approved in multiple versions at the same time.
 
 ### Installation
 
+TODO: remove clone once [PR 8494](https://github.com/ocaml/opam-repository/pull/8494) is merged.
+TODO: remove pin once [PR 8493](https://github.com/ocaml/opam-repository/pull/8493) is merged.
+
 ```bash
-$ git clone -b auth https://github.com/hannesm/opam-repository.git repo //TODO: remove once [PR 8494](https://github.com/ocaml/opam-repository/pull/8494) is merged
+$ git clone -b auth https://github.com/hannesm/opam-repository.git repo
 $ opam pin add opam-file-format --dev-repo
-$ opam pin add conex https://github.com/hannesm/conex.git //TODO: remove once [PR 8493](https://github.com/ocaml/opam-repository/pull/8493) is merged
+$ opam pin add conex https://github.com/hannesm/conex.git
 $ opam install conex
 $ cd repo
 ```
