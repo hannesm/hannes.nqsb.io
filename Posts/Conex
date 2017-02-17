@@ -131,14 +131,13 @@ TODO: remove pin once [PR 8493](https://github.com/ocaml/opam-repository/pull/84
 
 ```bash
 $ git clone -b auth https://github.com/hannesm/opam-repository.git repo
-$ opam pin add opam-file-format --dev-repo
 $ opam pin add conex https://github.com/hannesm/conex.git
 $ opam install conex
 $ cd repo
 ```
 
 This will install conex, namely command line utilities, `conex_author` and
-`conex_verify_nocrypto`.  All files read and written by conex are in the usual
+`conex_verify_nocrypto`/`conex_verify_openssl`.  All files read and written by conex are in the usual
 opam file format.  This means can always manually modify them (but be careful,
 modifications need to increment counters, add checksums, and be signed).  Conex
 does not deal with git, you have to manually `git add` files and open pull
