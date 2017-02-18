@@ -185,6 +185,26 @@ repo$ git diff //abbreviated output
 +        ["index" 0x2]
 +        ["digest" ["SHA256" "aCsktJ5M9PI6T+m1NIQtuIFYILFkqoHKwBxwvuzpuzg="]]
 +      ]
++
++keys: [
++  [
++    [
++      "RSA"
++      """
++-----BEGIN PUBLIC KEY-----
++MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAyUhArwt4XcxLanARyH9S
+...
++9KQdg6QnLsQh/j74QKLOZacCAwEAAQ==
++-----END PUBLIC KEY-----"""
++      0x58A3419F
++    ]
++    [
++      0x58A79A1D
++      "RSA-PSS-SHA256"
++      "HqqicsDx4hG9pFM5E7"
++    ]
++  ]
++]
 ```
 
 ### Status
@@ -202,10 +222,11 @@ janitors).
 
 ```bash
 repo$ conex_author status --quorum 0 arp
-author hannesm #0 (created 0) verification error: author hannesm does not have any public keys 3 resources, 0 queued
-account GitHub hannesm not approved account hannesm
-account email hannes@mehnert.org not approved account hannesm
-package arp authorisation packages arp, authorised ids [hannesm] missing
+author hannesm #1 (created 0) verified 3 resources, 0 queued
+4096 bit RSA key created 1487094175 approved, SHA256: ht9ztjjDwWwD/id6LSVi7nKqVyCHQuQu9ORpr8Zo2aY=
+account GitHub hannesm approved
+account email hannes@mehnert.org approved
+package arp authorisation approved
 conex_author: [ERROR] package index arp was not found in repository
 ```
 
