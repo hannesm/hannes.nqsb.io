@@ -99,7 +99,6 @@ has a good overview of attacks and threat model, both of which are shared by con
 - Tool to approve a PR (for janitors)
 - Camelus like opam-repository check bot
 - Integration into release management systems
-- Testing of opam2 [`repository validation command`](http://opam.ocaml.org/doc/2.0/Manual.html#configfield-repository-validation-command) and `conex_verify`
 
 ## Getting started
 
@@ -107,10 +106,10 @@ At the moment, our [opam repository](https://github.com/ocaml/opam-repository)
 does not include any metadata needed for signing.  We're in a bootstrap phase:
 we need you to generate a keypair, claim your packages, and approve your releases.
 
-We cannot verify the repository yet, but opam2 will have support for a
+We cannot verify the main opam repository yet, but opam2 has support for a
 [`repository validation command`](http://opam.ocaml.org/doc/2.0/Manual.html#configfield-repository-validation-command),
 builtin, which should then call out to `conex_verify` (there is a `--nostrict`
-flag for the impatient).
+flag for the impatient).  There is also an [example repository](https://github.com/hannesm/testrepo) which uses the opam validation command.
 
 To reduce the manual work, we analysed 7000 PRs of the opam repository within
 the last 4.5 years (more details [here](https://hannes.nqsb.io/Posts/Maintainers).
@@ -385,8 +384,8 @@ and above) for digest computation and verification of the RSA-PSS signature.
 The goal is to use the opam2 provided hooks, but before we have signatures we
 cannot enable them.
 
-See [this testrepo](https://github.com/hannesm/testrepo) for some verification
-experiments.
+See the [example repository](https://github.com/hannesm/testrepo) for initial
+verification experiments, and opam2 integration.
 
 I'm interested in feedback, please open an issue on the [conex
 repository](https://github.com/hannesm/conex).  This article itself is stored as
