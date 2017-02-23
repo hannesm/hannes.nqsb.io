@@ -7,6 +7,7 @@ abstract: MirageOS solo5 multiboot native on bhyve
 
 - Update (2016-10-19): all has been merged upstream now!
 - Update (2016-10-30): `static_website_tls` works (TLS,HTTP,network via tap device)!
+- Update (2017-02-23): no more extra remotes, Mirage3 is released!
 
 ## What?
 
@@ -28,14 +29,9 @@ These instructions are still slightly bumpy.  If you've a FreeBSD with bhyve (I 
 
 You need some software from the ports: `devel/pkgconf`, `devel/gmake`, `devel/binutils`, and `sysutils/grub2-bhyve`.
 
-Lots of libraries are not yet released, use the [`mirage-dev`](https://github.com/mirage/mirage-dev) repository:
-```bash
-opam repo add mirage-dev https://github.com/mirage/mirage-dev.git
-```
+An `opam install mirage mirage-logs solo5-kernel-virtio mirage-bootvar-solo5 mirage-solo5` should provide you with a basic set of libraries.
 
-An `opam install mirage mirage-logs solo5-kernel-virtio mirage-bootvar-solo5 mirage-console mirage-solo5` should provide you with a basic set of libraries.
-
-Now you can get the [mirage-skeleton](https://github.com/mirage/mirage-skeleton) repository, and inside of `console`, run `mirage configure --no-opam --virtio` followed by `make`.  There should be a resulting `mir-console.virtio`.
+Now you can get the [mirage-skeleton](https://github.com/mirage/mirage-skeleton) repository, and inside of `device-usage/console`, run `mirage configure --no-opam --virtio` followed by `make`.  There should be a resulting `mir-console.virtio`.
 
 Once that is in place, start your VM:
 ```bash
