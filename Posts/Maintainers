@@ -100,5 +100,4 @@ Manually maintained metadata is easily out of date, and not very useful.  But
 combining automatically created metadata with manually, and some manual tweaking
 leads to reasonable data.
 
-The resulting authorised inference is available [in this branch]([output
-repo](https://github.com/hannesm/opam-repository/tree/auth).
+The resulting authorised inference is available [in this branch](https://github.com/hannesm/opam-repository/tree/auth).
