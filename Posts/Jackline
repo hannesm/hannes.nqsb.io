@@ -228,7 +228,7 @@ interface.
 
 ### UI
 
-The lambda-term interface survived for a good year (until [26th Jan 2016](https://github.com/hannesm/jackline/commit/47ae690eb720cbb89323d98b0f7af17bfaea26e7)),
+The lambda-term interface survived for a good year (until [7th Feb 2016](https://github.com/hannesm/jackline/pull/117)),
 when I started to use [notty](https://github.com/pqwy/notty) - developed by
 David - using a decent [unicode library](http://erratique.ch/software/uutf).
 
