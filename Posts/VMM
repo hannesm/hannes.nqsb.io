@@ -53,7 +53,7 @@ virtual machine.
 The system bears minimalistic characteristics.  The single interface to the
 outside world is a TLS stream over TCP.  Internally, there is a family of
 processes, one of which has superuser privileges, communicating via unix domain
-sockets.  The processes do need any persistent storage (apart from the
+sockets.  The processes do not need any persistent storage (apart from the
 revocation lists).  A brief enumeration of the processes is provided below:
 
 * `vmmd` (superuser privileges), which terminates TLS sessions, proxies messages, and creates and destroys virtual machines (including setup and teardown of network interfaces and virtual block devices)
