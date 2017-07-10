@@ -1,0 +1,325 @@
+---
+title: Provisioning, deploying, and managing virtual machines
+author: hannes
+tags: mirageos, deployment, provisioning
+abstract: all we need is X.509
+---
+
+## How to deploy unikernels?
+
+MirageOS has a pretty good story on how to compose your OCaml libraries into a
+virtual machine image.  The `mirage` command line utility contains all the
+knowledge about which backend requires which library. This enables it to write a
+unikernel using abstract interfaces (such as a network device). Additionally the
+`mirage` utility can compile for any backend.  (It is still unclear whether this
+is a sustainable idea, since the `mirage` tool needs to be adjusted for every
+new backend, but also for additional implementations of an interface.)
+
+Once a virtual machine image has been created, it needs to be deployed.  I run
+my own physical hardware, with all the associated upsides and downsides.
+Specifically I run several physical [FreeBSD](https://freebsd.org) machines on
+the Internet, and use the [bhyve](http://bhyve.org) hypervisor with MirageOS as
+described [earlier](https://hannes.nqsb.io/Posts/Solo5).  Recently, Martin
+Lucina
+[developed](https://github.com/Solo5/solo5/pull/171/commits/e67a007b75fa3fcee5c082aab04c9fe9e897d779)
+a
+[`vmm`](https://svnweb.freebsd.org/base/head/sys/amd64/include/vmm.h?view=markup)
+backend for [Solo5](https://github.com/solo5/solo5).  This means there is no
+need to use virtio anymore, or grub2-bhyve, or the bhyve binary (which links
+`libvmmapi` that already had a [security
+advisory](https://www.freebsd.org/security/advisories/FreeBSD-SA-16:38.bhyve.asc)).
+Instead of the bhyve binary, a ~70kB small `ukvm-bin` binary (dynamically
+linking libc) can be used which is the solo5 virtual machine monitor on the host
+side.
+
+Until now, I manually created and deployed virtual machines using shell scripts,
+ssh logins, and a network file system shared with the FreeBSD virtual machine
+which builds my MirageOS unikernels.
+
+But there are several drawbacks with this approach, the biggest is that sharing
+resources is hard - to enable a friend to run their unikernel on my server,
+they'll need to have a user account, and even privileged permissions to
+create virtual network interfaces and execute virtual machines.
+
+To get rid of these ad-hoc shell scripts and copying of virtual machine images,
+I developed an UNIX daemon which accomplishes the required work. This daemon
+waits for (mutually!) authenticated network connections, and provides the
+desired commands; to create a new virtual machine, to aquire a block device of a
+given size, to destroy a virtual machine, to stream the console output of a
+virtual machine.
+
+## System design
+
+The system bears minimalistic characteristics.  The single interface to the
+outside world is a TLS stream over TCP.  Internally, there is a family of
+processes, one of which has superuser privileges, communicating via unix domain
+sockets.  The processes do need any persistent storage (apart from the
+revocation lists).  A brief enumeration of the processes is provided below:
+
+* `vmmd` (superuser privileges), which terminates TLS sessions, proxies messages, and creates and destroys virtual machines (including setup and teardown of network interfaces and virtual block devices)
+* `vmm_stats` periodically gathers resource usage and network interface statistics
+* `vmm_console` reads console output of every provided fifo, and stores this in a ringbuffer, replaying to a client on demand
+* `vmm_log` consumes the event log (login, starting, and stopping of virtual machines)
+
+The system uses X.509 certificates as tokens. These are authenticated key value
+stores.  There are four shapes of certificates: a *virtual machine certificate*
+which embeds the entire virtual machine image, together with configuration
+information (resource usage, how many and which network interfaces, block device
+access); a *command certificate* (for interactive use, allowing (a subset of)
+commands such as attaching to console output); a *revocation certificate* which
+contains a list of revoked certificates; and a *delegation certificate* to
+distribute resources to someone else (an intermediate CA certificate).
+
+The resources which can be controlled are CPUs, memory consumption, block
+storage, and access to bridge interfaces (virtual switches) - encoded in the
+virtual machine and delegation certificates.  Additionally, delegation
+certificates can limit the number of virtual machines.
+
+Leveraging the X.509 system ensures that the client always has to present a
+certificate chain from the root certificate.  Each intermediate certificate is a
+delegation certificate, which may further restrict resources.  The serial
+numbers of the chain is used as unique identifier for each virtual machine and
+other certificates.  The chain restricts access of the leaf certificate as well:
+only the subtree of the chain can be viewed.  E.g. if there are delegations to
+both Alice and Bob from the root certificate, they can not see each other
+virtual machines.
+
+Connecting to the vmmd requires a TLS client, a CA certificate, a leaf
+certificate (and the delegation chain) and its private key.  In the background,
+it is a multi-step process using TLS: first, the client establishes a TLS
+connection where it authenticates the server using the CA certificae, then the
+server demands a TLS renegotiation where it requires the client to authenticate
+with its leaf certificate and private key.  Using renegotiation over the
+encrypted channel prevents passive observers to see the client certificate in
+clear.
+
+Depending on the leaf certificate, the server logic is slightly different.  A
+command certificate opens an interactive session where - depending on
+permissions encoded in the certificate - different commands can be issued: the
+console output can be streamed, the event log can be viewed, virtual machines
+can be destroyed, statistics can be collected, and block devices can be managed.
+
+When a virtual machine certificate is presented, the desired resource usage is
+checked against the resource policies in the delegation certificate chain and
+the currently running virtual machines.  If sufficient resources are free, the
+embedded virtual machine is started.  In addition to other resource information,
+a delegation certificate may embed IP usage, listing the network configuration
+(gateway and netmask), and which addresses you're supposed to use.  Boot
+arguments can be encoded in the certificate as well, they are just passed to the
+virtual machine (for easy deployment of off-the-shelf systems).
+
+If a revocation certificate is presented, the embodied revocation list is
+verified, and stored on the host system.  Revocation is enforced by destroying
+any revoked virtual machines and terminating any revoked interactive sessions.
+If a delegation certificate is revoked, additionally the connected block devices
+are destroyed.
+
+The maximum size of a virtual machine image embedded into a X.509 certificate
+transferred over TLS is 2 ^ 24 - 1 bytes, roughly 16 MB.  If this turns out to
+be not sufficient, compression may help.  Or staging of deployment.
+
+## An example
+
+Instructions on how to setup `vmmd` and the certificate authority are in the
+README file of the [`vmm` git repository](https://github.com/hannesm/vmm).  Here
+is some (stripped) terminal output:
+
+```bash
+> openssl x509 -text -noout -in admin.pem
+Certificate:
+    Data:
+        Serial Number: b7:aa:77:f6:ca:08:ee:6a
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN=dev
+        Subject: CN=admin
+        X509v3 extensions:
+            1.3.6.1.4.1.49836.42.42: ....
+            1.3.6.1.4.1.49836.42.0: ...
+
+> openssl asn1parse -in admin.pem
+  403:d=4  hl=2 l=  18 cons: SEQUENCE
+  405:d=5  hl=2 l=  10 prim: OBJECT            :1.3.6.1.4.1.49836.42.42
+  417:d=5  hl=2 l=   4 prim: OCTET STRING      [HEX DUMP]:03020780
+  423:d=4  hl=2 l=  17 cons: SEQUENCE
+  425:d=5  hl=2 l=  10 prim: OBJECT            :1.3.6.1.4.1.49836.42.0
+  437:d=5  hl=2 l=   3 prim: OCTET STRING      [HEX DUMP]:020100
+
+> openssl asn1parse -in hello.pem
+  410:d=4  hl=2 l=  18 cons: SEQUENCE
+  412:d=5  hl=2 l=  10 prim: OBJECT            :1.3.6.1.4.1.49836.42.42
+  424:d=5  hl=2 l=   4 prim: OCTET STRING      [HEX DUMP]:03020520
+  430:d=4  hl=2 l=  18 cons: SEQUENCE
+  432:d=5  hl=2 l=  10 prim: OBJECT            :1.3.6.1.4.1.49836.42.5
+  444:d=5  hl=2 l=   4 prim: OCTET STRING      [HEX DUMP]:02020200
+  450:d=4  hl=2 l=  17 cons: SEQUENCE
+  452:d=5  hl=2 l=  10 prim: OBJECT            :1.3.6.1.4.1.49836.42.6
+  464:d=5  hl=2 l=   3 prim: OCTET STRING      [HEX DUMP]:020101
+  469:d=4  hl=5 l=3054024 cons: SEQUENCE
+  474:d=5  hl=2 l=  10 prim: OBJECT            :1.3.6.1.4.1.49836.42.9
+  486:d=5  hl=5 l=3054007 prim: OCTET STRING      [HEX DUMP]:A0832E99B204832E99AD7F454C46
+```
+
+The MirageOS private enterprise number is 1.3.6.1.4.1.49836, I use the arc 42
+here.  I use 0 as version (an integer), where 0 is the current version.
+
+42 is a bit string representing the permissions.  5 the amount of memory, 6 the
+CPU id, and 9 finally the virtual machine image (as ELF binary).  If you're
+eager to see more, look into the `Vmm_asn` module.
+
+Using a command certificate establishes an interactive session where you can
+review the event log, see all currently running virtual machines, or attach to
+the console (which is then streamed, if new console output appears while the
+interactive session is active, you'll be notified).  The `db` file is used to
+translate between the internal names (mentioned above, hashed serial numbers) to
+common names of the certificates - both on command input (`attach hello`) and
+output.
+
+```bash
+> vmm_client cacert.pem admin.bundle admin.key localhost:1025 --db dev.db
+$ info
+info sn.nqsb.io: 'cpuset' '-l' '7' '/tmp/vmm/ukvm-bin.net' '--net=tap27' '--' '/tmp/81363f.0237f3.img' 91540 taps tap27
+info nqsbio: 'cpuset' '-l' '5' '/tmp/vmm/ukvm-bin.net' '--net=tap26' '--' '/tmp/81363f.43a0ff.img' 91448 taps tap26
+info marrakesh: 'cpuset' '-l' '4' '/tmp/vmm/ukvm-bin.net' '--net=tap25' '--' '/tmp/81363f.cb53e2.img' 91368 taps tap25
+info tls.nqsb.io: 'cpuset' '-l' '9' '/tmp/vmm/ukvm-bin.net' '--net=tap28' '--' '/tmp/81363f.ec692e.img' 91618 taps tap28
+$ log
+log: 2017-07-10 09:43:39 +00:00: marrakesh LOGIN 128.232.110.109:43142
+log: 2017-07-10 09:43:39 +00:00: marrakesh STARTED 91368 (tap tap25, block no)
+log: 2017-07-10 09:43:51 +00:00: nqsbio LOGIN 128.232.110.109:44663
+log: 2017-07-10 09:43:51 +00:00: nqsbio STARTED 91448 (tap tap26, block no)
+log: 2017-07-10 09:44:07 +00:00: sn.nqsb.io LOGIN 128.232.110.109:38182
+log: 2017-07-10 09:44:07 +00:00: sn.nqsb.io STARTED 91540 (tap tap27, block no)
+log: 2017-07-10 09:44:21 +00:00: tls.nqsb.io LOGIN 128.232.110.109:11178
+log: 2017-07-10 09:44:21 +00:00: tls.nqsb.io STARTED 91618 (tap tap28, block no)
+log: 2017-07-10 09:44:25 +00:00: hannes LOGIN 128.232.110.109:24207
+success
+$ attach hello
+console hello: 2017-07-09 18:44:52 +00:00             |      ___|
+console hello: 2017-07-09 18:44:52 +00:00   __|  _ \  |  _ \ __ \
+console hello: 2017-07-09 18:44:52 +00:00 \__ \ (   | | (   |  ) |
+console hello: 2017-07-09 18:44:52 +00:00 ____/\___/ _|\___/____/
+console hello: 2017-07-09 18:44:52 +00:00 Solo5: Memory map: 512 MB addressable:
+console hello: 2017-07-09 18:44:52 +00:00 Solo5:     unused @ (0x0 - 0xfffff)
+console hello: 2017-07-09 18:44:52 +00:00 Solo5:       text @ (0x100000 - 0x1e4fff)
+console hello: 2017-07-09 18:44:52 +00:00 Solo5:     rodata @ (0x1e5000 - 0x217fff)
+console hello: 2017-07-09 18:44:52 +00:00 Solo5:       data @ (0x218000 - 0x2cffff)
+console hello: 2017-07-09 18:44:52 +00:00 Solo5:       heap >= 0x2d0000 < stack < 0x20000000
+console hello: 2017-07-09 18:44:52 +00:00 STUB: getenv() called
+console hello: 2017-07-09 18:44:52 +00:00 2017-07-09 18:44:52 -00:00: INF [application] hello
+console hello: 2017-07-09 18:44:53 +00:00 2017-07-09 18:44:53 -00:00: INF [application] hello
+console hello: 2017-07-09 18:44:54 +00:00 2017-07-09 18:44:54 -00:00: INF [application] hello
+console hello: 2017-07-09 18:44:55 +00:00 2017-07-09 18:44:55 -00:00: INF [application] hello
+```
+
+If you use a virtual machine certificate, depending on allowed resource the
+virtual machine is started or not:
+
+```bash
+> vmm_client cacert.pem hello.bundle hello.key localhost:1025
+success VM started
+```
+
+## Sharing is caring
+
+Deploying unikernels is now easier for myself on my physical machine. That's
+fine.  Another aspect comes *for free* by reusing X.509: further delegation (and
+limiting thereof).  Within a delegation certificate, the basic constraints
+extension must be present which marks this certificate as a CA certificate.
+This may as well contain a path length - how many other delegations may follow -
+or whether the resources may be shared further.
+
+If I delegate 2 virtual machines and 2GB of memory to Alice, and allow an
+arbitrary path length, she can issue tokens to her friend Carol and Dan, each up
+to 2 virtual machines and 2 GB memory (but also less -- within the X.509 system
+even more, but vmmd will reject any resource increase in the chain) - who can
+further delegate to Eve, ....  Carol and Dan won't know of each other,
+and vmmd will only start up to 2 virtual machines using 2GB of memory in total
+(sum of Alice, Carol, and Dan deployed virtual machines).  Alice may revoke any
+issued delegation (using a revocation certificate described above) to free up
+some resources for herself.  I don't need to interact when Alice or Dan share
+their delegated resources further.
+
+## Security
+
+There are several security properties preserved by `vmmd`, such as the virtual
+machine image is never transmitted in clear.  Only properly authenticated
+clients can create, destroy, gather statistics of _their_ virtual machines.
+
+Two disjoint paths in the delegation tree are not able to discover anything
+about each other (apart from caches, which depend on how CPUs are delegated and
+their concrete physical layout).  Only smaller amounts of resources can be
+delegated further down.  Each running virtual machine image is strongly isolated
+from all other virtual machines.
+
+As mentioned in the last section, delegations of delegations may end up in the
+hands of malicious people.  Vmmd limits delegations to allocate resources on the
+host system, namely bridges and file systems.  Only top delegations - directly
+signed by the certificate authority - create bridge interfaces (which are
+explicitly named in the certificate) and file systems (one zfs for each top
+delegation (to allow easy snapshots and backups)).
+
+The threat model is that clients have layer 2 access to the hosts network
+interface card, and all guests share a single bridge (if this turns out to be a
+problem, there are ways to restrict to a point-to-point interface with routed IP
+addresses).  A malicious virtual machine can try to hijack ethernet and IP
+addresses.
+
+Possible DoS scenarios include also to spawn VMs very fast (which immediately
+crash) or generating a lot of console output.  Both is indirectly handled by the
+control channel: to create a virtual machine image, you need to setup a TLS
+connection (with two handshakes) and transfer the virtual machine image (there
+is intentionally no "respawn on quit" option).  The console output is read by a
+single process with user privileges (in the future there may be one console
+reading process for each top delegation).  It may further be rate limited as
+well.  The console stream is only ever sent to a single session, as soon as
+someone attaches to the console in one session, all other sessions have this
+console detached (and are notified about that).
+
+The control channel itself can be rate limited using the host system firewall.
+
+The only information persistently stored on a block device are the certificate
+revocation lists - virtual machine images, FIFOs, unix domain sockets are all
+stored in a memory-backed file system.  A virtual machine with a lots of disk
+operation may only delay or starve revocation list updates - if this turns out
+to be a problem, the solution may be to use separate physical block devices for
+the revocation lists and virtual block devices for clients.
+
+## Conclusion
+
+I showed a minimalistic system to provision, deploy, and manage virtual machine
+images.  It also allows to delegate resources (CPU, disk, ..) further.  I'm
+pretty satisfied with the security properties of the system.
+
+The system embeds all data (configuration, resource policies, virtual machine
+images) into X.509 certificates, and does not rely on an external file transfer
+protocol.  An advantage thereof is that all deployed images have been signed
+with a private key.
+
+All communication between the processes and between the client and the server
+use a wire protocol, with structured input and output - this enables more
+advanced algorithms (e.g. automated scaling) and fancier user interfaces than
+the currently provided terminal based one.
+
+The delegation mechanism allows to actually share computing resources in a
+decentralised way - without knowing the final recipient.  Revocation is builtin,
+which can at any point delete access of a subtree or individual virtual machine
+to the system.  Instead of requesting revocation lists during the handshake,
+they are pushed explicitly by the (sub)CA revoking a certificate.
+
+While this system was designed for a physical server, it should be
+straightforward to develop a Google compute engine / EC2 backend which extracts
+the virtual machine image, commands, etc. from the certificate and deploys it to
+your favourite cloud provider.  A virtual machine image itself is only
+processor-specific, and should be portable between different hypervisors - being
+it FreeBSD and VMM, Linux and KVM, or MacOSX and Hypervisor.Framework.
+
+The code is available [on GitHub](https://github.com/hannesm/vmm).  If you want
+to deploy your unikernel on my hardware, please send me a certificate signing
+request.  I'm interested in feedback, either via
+[twitter](https://twitter.com/h4nnes) or open issues in the repository.  This
+article itself is stored [in a different
+repository](https://github.com/hannesm/hannes.nqsb.io) (in case you have typo or
+grammatical corrections).
+
+I'm very thankful to people who gave feedback on earlier versions of this
+article, and who discussed the system design with me.  These are Addie, Chris,
+Christiano, Joe, Mindy, Mort, and sg.
