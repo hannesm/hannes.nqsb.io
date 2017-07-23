@@ -21,8 +21,7 @@ My current obsession is to enable people to take back control over their data:
 simple to setup, secure, decentralised infrastructure.  We're not there yet,
 which also means I've plenty of projects :).
 
-I will write about my projects roughly on a weekly basis, which cover topics on various layers above
-hardware.
+I will write about my projects, which cover topics on various software layers.
 
 ### Myself
 
@@ -41,8 +40,8 @@ Fast forwarding a bit, I learned about the operating system Linux (starting with
 SUSE 6.4) and got hooked (by providing basic network services (NFS/YP/Samba)) to
 UNIX.  In 2000 I joined the [Chaos Computer Club](https://www.ccc.de).
 Over the years I learned various things, from Linux kernel modifications,
-Perl, PHP, basic network and security.  I also started to use [FreeBSD](https://www.FreeBSD.org) around 4.5, still using a FreeBSD-CURRENT
-on my laptop (unfortunately no Broadwell graphics).  I helped to [reverse engineer and analyse the security of a voting
+Perl, PHP, basic network and security.  I use [FreeBSD](https://www.FreeBSD.org) since 4.5, FreeBSD-CURRENT
+on my laptop.  I helped to [reverse engineer and analyse the security of a voting
 computer](http://wijvertrouwenstemcomputersniet.nl) in the Netherlands, and some
 [art installations](http://blinkenlights.net/) in Berlin and Paris.  There were
 several annual Chaos Communication Congresses where I co-setup the network
