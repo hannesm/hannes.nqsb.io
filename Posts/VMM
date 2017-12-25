@@ -44,8 +44,8 @@ create virtual network interfaces and execute virtual machines.
 To get rid of these ad-hoc shell scripts and copying of virtual machine images,
 I developed an UNIX daemon which accomplishes the required work. This daemon
 waits for (mutually!) authenticated network connections, and provides the
-desired commands; to create a new virtual machine, to aquire a block device of a
-given size, to destroy a virtual machine, to stream the console output of a
+desired commands; to create a new virtual machine, to acquire a block device of
+a given size, to destroy a virtual machine, to stream the console output of a
 virtual machine.
 
 ## System design
@@ -87,7 +87,7 @@ virtual machines.
 Connecting to the vmmd requires a TLS client, a CA certificate, a leaf
 certificate (and the delegation chain) and its private key.  In the background,
 it is a multi-step process using TLS: first, the client establishes a TLS
-connection where it authenticates the server using the CA certificae, then the
+connection where it authenticates the server using the CA certificate, then the
 server demands a TLS renegotiation where it requires the client to authenticate
 with its leaf certificate and private key.  Using renegotiation over the
 encrypted channel prevents passive observers to see the client certificate in
