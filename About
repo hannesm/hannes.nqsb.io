@@ -59,7 +59,7 @@ I got excited about programming languages and type theory (thanks to
 [types and programming languages](https://www.cis.upenn.edu/~bcpierce/tapl/), an
 excellent book); a key event for me was the [international conference on functional programming (ICFP)](http://cs.au.dk/~danvy/icfp05/).  I wondered how a
 [gradually typed](http://homes.soic.indiana.edu/jsiek/what-is-gradual-typing/)
-Dylan would look like, leading to my master thesis.  Gradual typing is the idea to evolve untyped programs into types ones, and runtime type errors must be in the dynamic part.  To me, this sounded like a great idea, to start with some random code, and add types later.
+Dylan would look like, leading to my master thesis.  Gradual typing is the idea to evolve untyped programs into typed ones, and runtime type errors must be in the dynamic part.  To me, this sounded like a great idea, to start with some random code, and add types later.
 My result was not too convincing (too slow, unsound type system).
 Another problem with Dylan is that the community is very small, without sufficient time and energy to maintain the
 self-hosted compiler(s) and the graphical IDE.
@@ -91,6 +91,8 @@ Morocco.  A good friend of mine pointed me to [MirageOS](https://mirage.io), a
 clean-slate operating system written in the high-level language [OCaml](https://ocaml.org).  I got
 hooked pretty fast, after some experience with LISP machines I imagined a modern
 OS written in a single functional programming language.
+
+From summer 2014 until end of 2017 I worked as a postdoctoral researcher at University of Cambridge (in the [rigorous engineering of mainstream systems](https://www.cl.cam.ac.uk/~pes20/rems) project) with [Peter Sewell](https://www.cl.cam.ac.uk/~pes20/).  I primarily worked on TLS, MirageOS, opam signing, and network semantics.  In 2018 I relocated back to Berlin and am working on [robur](http://robur.io).
 
 MirageOS had various bits and pieces into place, including infrastructure for
 building and testing (and a neat self-hosted website).  A big gap was security.
