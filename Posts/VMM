@@ -1,5 +1,5 @@
 ---
-title: Provisioning, deploying, and managing virtual machines
+title: Albatross - provisioning, deploying, managing, and monitoring virtual machines
 author: hannes
 tags: mirageos, deployment, provisioning
 abstract: all we need is X.509
@@ -121,7 +121,7 @@ be not sufficient, compression may help.  Or staging of deployment.
 ## An example
 
 Instructions on how to setup `vmmd` and the certificate authority are in the
-README file of the [`vmm` git repository](https://github.com/hannesm/vmm).  Here
+README file of the [`albatross` git repository](https://github.com/hannesm/albatross).  Here
 is some (stripped) terminal output:
 
 ```bash
@@ -312,7 +312,7 @@ your favourite cloud provider.  A virtual machine image itself is only
 processor-specific, and should be portable between different hypervisors - being
 it FreeBSD and VMM, Linux and KVM, or MacOSX and Hypervisor.Framework.
 
-The code is available [on GitHub](https://github.com/hannesm/vmm).  If you want
+The code is available [on GitHub](https://github.com/hannesm/albatross).  If you want
 to deploy your unikernel on my hardware, please send me a certificate signing
 request.  I'm interested in feedback, either via
 [twitter](https://twitter.com/h4nnes) or open issues in the repository.  This
