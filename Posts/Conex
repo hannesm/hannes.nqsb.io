@@ -229,7 +229,7 @@ conex_author: [ERROR] package index arp was not found in repository
 
 This shows your key material and accounts, team membership and packages you are
 authorised to modify (inferred as described
-[here](https://hannes.nqsb.io/Posts/Maintainer).
+[here](https://hannes.nqsb.io/Posts/Maintainers).
 
 The `--noteam` argument limits the package list to only these you are personally
 authorised for.  The `--id` argument presents you with a view of another author,

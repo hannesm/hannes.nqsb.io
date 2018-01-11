@@ -18,6 +18,10 @@ html a:visited {
     color: black;
 }
 
+p {
+    line-height: 1.6;
+}
+
 .navbar {
     box-sizing: border-box;
     box-shadow: 0 2px 2px -2px rgba(0,0,0,.15);
@@ -61,6 +65,7 @@ footer {
 
 pre {
     padding: 0px;
+    line-height: 1.3;
 }
 
 body h2 {
