@@ -1,0 +1,317 @@
+---
+title: my 2018 contains robur and re-engineering DNS
+author: hannes
+tags: mirageos, protocol
+abstract: New year brings new possibilities and a new environment.  I've been working on the most Widely deployed key-value store, the domain name system.  Primary and secondary name services are available, including dynamic updates, notify, and tsig authentication.
+---
+
+TODO: ximin
+hannes: opiniated from scratch -> opiniated from-scratch
+<infinity0> when you use a multi-word phrase as an adjective it's usually best to hyphenate it to avoid ambiguity
+<infinity0> key <- random; ciphertext = header + aead(plaintext, key) where header = concat([ deterministic-encrypt(msg=key, derived_key) for derived_key in derived_keys ])
+<infinity0> flop, maker: does that look secure to you ^ usually deterministic encryption isn't but here i'm only using it to encrypt a randomly-generated key
+<infinity0> actually that should be aead(header + plaintext, key)
+<infinity0> hannes: "There are three building blocks for DNS" - i'd also rephrase that paragraph to move the stuff in brackets out of the brackets
+
+## 2018
+
+At the end of 2017, I resigned from my PostDoc position at University of
+Cambridge (in the [rems](https://www.cl.cam.ac.uk/~pes20/rems/) project).  Early
+December 2017 I organised the [4th MirageOS hack
+retreat](https://mirage.io/blog/2017-winter-hackathon-roundup), with which I'm
+very satisfied.  In March 2018 the [5th retreat](http://retreat.mirage.io) will
+happen (please sign up!).
+
+In 2018 I moved to Berlin and started to work for the (non-profit) [Centre for
+the cultivation of technology](https://techcultivation.org) with our
+[robur.io](http://robur.io) project "At robur, we build performant bespoke
+minimal operating systems for high-assurance services".  robur is only possible
+by generous donations in autumn 2017, enthusiastic collaborateurs, supportive
+friends, and a motivated community, thanks to all.  We will receive funding from
+the [prototypefund](https://prototypefund.de/project/robur-io/) to work on a
+[CalDAV server](http://robur.io/Projects/CalDAV) implementation in OCaml
+targeting MirageOS.  We're still looking for donations and further funding,
+please get in touch.  Apart from CalDAV, I want to start the year by finishing
+several projects which I discovered on my hard drive.  This includes DNS, [opam
+signing](/Posts/Conex), TCP, ... .  My personal goal for 2018 is to develop a
+flexible `mirage deploy`, because after configuring and building a unikernel, I
+want to get it smoothly up and running (spoiler: I already use
+[albatross](/Posts/VMM) in production).
+
+To kick off (3% of 2018 is already used) this year, I'll talk in more detail
+about [µDNS](https://github.com/roburio/udns), an opinionated from scratch
+re-engineered DNS library, which I use it since Christmas 2017 in production for
+[ns.nqsb.io](https://github.com/hannesm/ns.nqsb.io) and
+[ns.robur.io](https://git.robur.io/?p=ns.robur.io.git;a=summary).  The
+development started in March 2017, and continued over several evenings and long
+weekends.  My initial motivation was to implement a recursive resolver to run on
+my laptop.  I had a working prototype in use on my laptop over 4 months in the
+summer 2017, but that code is not in a good shape, so I went down the rabbit
+hole and (re)wrote a server (and learned more about GADT).  A configurable
+resolver needs a server, as local overlay, usually anyways.  Furthermore,
+dynamic updates are standardised and thus a configuration interface exists
+inside the protocol, even with hmac-signatures for authentication!
+Coincidentally, I started to solve another issue, automated management of let's
+encrypt certificates (see [this
+branch](https://github.com/hannesm/ocaml-letsencrypt/tree/nsupdate) for an
+initial hack).  On my journey, I also reported a cache poisoning vulnerability,
+which was fixed in [Docker for
+Windows](https://docs.docker.com/docker-for-windows/release-notes/#docker-community-edition-17090-ce-win32-2017-10-02-stable).
+
+But let's get started with some content.  Please keep in mind that while the
+code is publicly available, it is not yet released (mainly since the test
+coverage is not high enough, and the lack of documentation).  I appreciate early
+adoptors, please let me know if you find any issues or find a use case which is
+not straightforward to solve.  This won't be the last article about DNS this
+year - persistent storage, resolver, let's encrypt support are still missing.
+
+## What is DNS?
+
+The [domain name system](https://en.wikipedia.org/wiki/DNS) is a core Internet
+protocol, which translates domain names to IP addresses.  A domain name is
+easier to memorise for human beings than an IP address.  DNS is hierarchical and
+decentralised.  It was initially "specified" in Nov 1987 in [RFC
+1034](https://tools.ietf.org/html/rfc1034) and [RFC
+1035](https://tools.ietf.org/html/rfc1035).  Nowadays it spans over more than 20
+technical RFCs, 10 security related, 5 best current practises and another 10
+informational.  The basic encoding and mechanisms did not change.
+
+In the Internet, there is a set of root servers (administrated by IANA) which
+provide the information which name servers are authoritative for which top level
+domain (such as ".com").  They provide the information which name servers are
+responsible for which second level domain name (such as "example.com"), and so
+on.  There are at least two name servers for each domain name in separate
+networks - in case one is unavailable, the other can be reached.
+
+There are three building blocks for DNS: the client (usually your C library
+which provides `gethostbyname` amongst other system calls), the authoritative
+servers (handing out information about your domain name), and a recursive
+resolver (seeded with the root servers it is able to find out the name for any
+domain name).  Additionally, there are forwarders (caching DNS proxies, not
+relevant from an operational perspective).
+
+To get some terminology, a DNS client sends a question, consisting of a domain
+name and a query type, and expects a set of answers, which are called resource
+records, and contain: name, time to live, type, and data.  The resolver
+iteratively requests resource records from authoritative servers, until it
+resolved the requested domain name or failed (name does not exist, server
+failure, server offline).
+
+DNS usually uses UDP as transport, which is not reliable and limited to 512 byte
+payload on the Internet (due to various middleboxes).  DNS can also be
+transported via TCP, and even via TLS over UDP or TCP.  If a DNS packet
+transferred via UDP is larger than 512 bytes, it is cut at the 512 byte mark,
+and a bit in its header is set.  The receiver can decide whether to use the 512
+bytes of information, or to throw it away and attempt a TCP connection.
+
+### DNS packet
+
+The packet encoding starts with a 16bit identifier followed by a 16bit header
+(containing operation, flags, status code), and four counters, each 16bit,
+specifying the amount of resource records in the body: questions, answers,
+authority records, and additional records.  The header starts with one bit
+operation (query or response), four bits opcode, various flags (recursion,
+authoritative, truncation, ...), and the last four bit encode the response code.
+
+A question consists of a domain name, a query type, and a query class.  A
+resource record additionally contains a 32bit time to live, a length, and the
+data.
+
+Each domain name is a case sensitive string of up to 255 bytes, separated by `.`
+into labels of up to 63 bytes each.  A label is either encoded by its length
+followed by the content, or by an offset to the start of a label in the current
+DNS frame (poor mans compression).  Care must be taken during decodign to avoid
+cycles in offsets.  Common operations on domain names are comparison: equality,
+ordering, and also whether some domain name is a subdomain of another domain
+name, should be efficient.  My initial representation naively was a list of
+strings, now it is an array of strings in reverse order.  This speeds up common
+operations by a factor of 5 (see test/bench.ml).
+
+The only really used class is `IN` (for Internet), as mentioned in [RFC
+6895](https://tools.ietf.org/html/rfc6895).  Various query types (`MD`, `MF`,
+`MB`, `MG`, `MR`, `NULL`, `AFSDB`, ...) are barely or never used.  There is no
+need to convolute the implementation and its API with these legacy options (if
+you have a use case and see those in the wild, please tell me).
+
+My implemented packet decoding does decompression, only allows valid internet
+domain names, and may return a partial parse - to use as many resource records
+in truncated packets as possible.  There are no exceptions raised, the parsing
+uses a monadic style error handling.  Since label decompression requires the
+parser to know absolute offsets, the original buffer and the offset is manually
+passed around at all times, instead of using smaller views on the buffer.  The
+decoder does not allow for gaps, when the outer resource data length specifies a
+byte length which is not completely consumed by the specific resource data
+subparser (an A record must always consume four bytes).  Failing to check this can
+lead to a way to exfiltrate data without getting noticed.
+
+Each zone (a served domain name) contains a SOA, start of authority, entry,
+which includes the primary nameserver name, the hostmaster's email address (both
+encoded as domain name), a serial number of the zone, a refresh, retry, expiry,
+and minimum interval (all encoded as 32bit unsigned number in seconds).  Common
+resource records include A, which payload is 32bit IPv4 address.  A nameserver
+(NS) record carries a domain name as payload.  A mail exchange (MX) whose
+payload is a 16bit priotiy and a domain name.  A CNAME record is an alias to
+another domain name.  These days, there are even records to specify the
+certificate authority authorisation (CAA) records containing a flags (critical),
+a tag ("issue") and a value ("letsencrypt.org").
+
+## Server
+
+The operation of a DNS server is to listen for a request and serve a reply.
+Data to be served can be canonically encoded (the RFC describes the format) in a
+zone file.  Apart from insecurity in DNS server implementations, another attack
+vector are amplification attacks, where an attacker crafts a small UDP frame
+with a fake source IP address, and the server answers with a large response to
+that address, which may lead to a DoS attack.  Various mitigations exist,
+including rate limiting, serving large replies only via TCP, ...
+
+Internally, the zone file data is stored in a tree (module
+[Dns_trie](https://github.com/roburio/udns/blob/master/server/dns_trie.mli)
+[implementation](https://github.com/roburio/udns/blob/master/server/dns_trie.ml)),
+where each node contains two maps: `sub`, which key is a label and value is a
+subtree and `dns_map` (module Dns_map), which key is a resource record type and
+value is the resource record.  Both use the OCaml
+[Map](http://caml.inria.fr/pub/docs/manual-ocaml/libref/Map.html) ("also known
+as finite maps or dictionaries, given a total ordering function over the
+keys. All operations over maps are purely applicative (no side-effects). The
+implementation uses balanced binary trees, and therefore searching and insertion
+take time logarithmic in the size of the map").
+
+The server looks up the queried name, and in the returned Dns_map the queried
+type. The found resource records are send as answer, which also includes the
+question and authority information (NS records of the zone) and additional glue
+records (IP addresses of names mentioned earlier in the same zone).
+
+### Dns_map
+
+The data structure which contains resource record types as key, and a collection
+of matching resource records as values.  In OCaml the value type must be
+homogenous - using a normal sum type leads to an unneccessary unpacking step
+(or lacking type information):
+
+```OCaml
+let lookup_ns t =
+  match Map.find NS t with
+  | None -> Error `NotFound
+  | Some (NS nameservers) -> Ok nameservers
+  | Some _ -> Error `NotFound
+```
+
+Instead, I use in my current rewrite [generalized algebraic data
+types](https://en.wikipedia.org/wiki/Generalized_algebraic_data_type) (read
+[OCaml manual](http://caml.inria.fr/pub/docs/manual-ocaml/extn.html#sec251) and
+[Mads Hartmann blog
+post](http://mads-hartmann.com/ocaml/2015/01/05/gadt-ocaml.html)) to preserve a
+relation between key and value (and A record has a list of IPv4 addresses and a
+ttl as value) - similar to [hmap](http://erratique.ch/software/hmap), but
+different: a closed key-value mapping (the GADT), no int for each key and
+mutable state.  Thanks to Justus Matthiesen for helping me with GADTs and this
+code.  Look into the
+[interface](https://github.com/roburio/udns/blob/master/src/dns_map.mli) and
+[implementation](https://github.com/roburio/udns/blob/master/src/dns_map.ml).
+
+
+```OCaml
+(* an ordering relation, I dislike using int for that *)
+module Order = struct
+  type (_,_) t =
+    | Lt : ('a, 'b) t
+    | Eq : ('a, 'a) t
+    | Gt : ('a, 'b) t
+end
+
+module Key = struct
+  (* The key and its value type *)
+  type _ t =
+    | Soa : (int32 * Dns_packet.soa) t
+    | A : (int32 * Ipaddr.V4.t list) t
+    | Ns : (int32 * Dns_name.DomSet.t) t
+    | Cname : (int32 * Dns_name.t) t
+
+  (* we need a total order on our keys *)
+  let compare : type a b. a t -> b t -> (a, b) Order.t = fun t t' ->
+    let open Order in
+    match t, t' with
+    | Cname, Cname -> Eq | Cname, _ -> Lt | _, Cname -> Gt
+    | Ns, Ns -> Eq | Ns, _ -> Lt | _, Ns -> Gt
+    | Soa, Soa -> Eq | Soa, _ -> Lt | _, Soa -> Gt
+    | A, A -> Eq
+end
+
+type 'a key = 'a Key.t
+
+(* our OCaml Map with an encapsulated constructor as key *)
+type k = K : 'a key -> k
+module M = Map.Make(struct
+    type t = k
+    (* the price I pay for not using int as three-state value *)
+    let compare (K a) (K b) = match Key.compare a b with
+      | Order.Lt -> -1
+      | Order.Eq -> 0
+      | Order.Gt -> 1
+  end)
+
+(* v contains a key and value pair, wrapped by a single constructor *)
+type v = V : 'a key * 'a -> v
+
+(* t is the main type of a Dns_map, used by clients *)
+type t = v M.t
+
+(* retrieve a typed value out of the store *)
+let get : type a. a Key.t -> t -> a = fun k t ->
+  match M.find (K k) t with
+  | V (k', v) ->
+    (* this comparison is superfluous, just for the types *)
+    match Key.compare k k' with
+    | Order.Eq -> v
+    | _ -> assert false
+```
+
+This helps me to programmaticaly retrieve tightly typed values from the cache,
+important when code depends on concrete values (i.e. when there are domain
+names, look these up as well and add as additional records).  Look into [server/dns_server.ml](https://github.com/roburio/udns/blob/master/server/dns_server.ml)
+
+### Dynamic updates, notifications, and authentication
+
+[Dynamic updates](https://tools.ietf.org/html/rfc2136) specify in-protocol
+record updates (supported for example by `nsupdate` from ISC bind-tools),
+[notifications](https://tools.ietf.org/html/rfc1996) are used by primary servers
+to notify secondary servers about updates, which then initiate a [zone
+transfer](https://tools.ietf.org/html/rfc5936) to retrieve up to date
+data. [Shared hmac secrets](https://tools.ietf.org/html/rfc2845) are used to
+ensure that the transaction (update, zone transfer) was authorised.  These are
+all protocol extensions, there is no need to use out-of-protocol solutions.
+
+The server logic for update and zone transfer frames is slightly more complex,
+and includes a dependency upon an authenticator (implemented using the
+[nocrypto](https://github.com/mirleft/ocaml-nocrypto) library, and
+[ptime](http://erratique.ch/software/ptime)).
+
+### Deployment and let's encrypt
+
+To deploy servers without much persistent data, an authentication schema is
+hardcoded in the dns-server: shared secrets are also stored as DNS entries
+(DNSKEY), and `_transfer.zone`, `_update.zone`, and `_key-management.zone` names
+are introduced to encode the permissions.  A `_transfer` key also needs to
+encode the IP address of the primary (to know where to request zone transfers)
+and secondary IP (to know where to send notifications).
+
+Please have a look at
+[ns.robur.io](https://git.robur.io/?p=ns.robur.io.git;a=summary) and the [examples](https://github.com/roburio/udns/blob/master/mirage/examples) for more details.  The shared secrets are provided as boot parameter of the unikernel.
+
+I hacked maker's
+[ocaml-letsencrypt](https://github.com/hannesm/ocaml-letsencrypt/tree/nsupdate)
+library to use µDNS and sending update frames to the given IP address.  I
+already used this to have letsencrypt issue various certificates for my domains.
+
+There is no persistent storage of updates yet, but this can be realised by
+implementing a secondary (which is notified on update) that writes every new
+zone to persistent storage (e.g. [disk](https://github.com/mirage/mirage-block)
+or [git](https://github.com/mirage/ocaml-git)).  I also plan to have an
+automated let's encrypt certificate unikernel which listens for certificate
+signing requests and stores signed certificates in DNS.  Luckily the year only
+started and there's plenty of time left.
+
+I'm interested in feedback, either via ~~[twitter](https://twitter.com/h4nnes)~~
+hannesm@mastodon.social or an issue on the [data
+repository](https://github.com/hannesm/hannes.nqsb.io/issues).
