@@ -304,6 +304,6 @@ automated Let's Encrypt certificate unikernel which listens for certificate
 signing requests and stores signed certificates in DNS.  Luckily the year only
 started and there's plenty of time left.
 
-I'm interested in feedback, either via ~~[twitter](https://twitter.com/h4nnes)~~
+I'm interested in feedback, either via <strike>[twitter](https://twitter.com/h4nnes)</strike>
 hannesm@mastodon.social or an issue on the [data
 repository](https://github.com/hannesm/hannes.nqsb.io/issues).
