@@ -1,5 +1,5 @@
 ---
-title: my 2018 contains robur and re-engineering DNS
+title: my 2018 contains robur and starts with re-engineering DNS
 author: hannes
 tags: mirageos, protocol
 abstract: New year brings new possibilities and a new environment.  I've been working on the most Widely deployed key-value store, the domain name system.  Primary and secondary name services are available, including dynamic updates, notify, and tsig authentication.
