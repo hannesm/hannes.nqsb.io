@@ -5,14 +5,6 @@ tags: mirageos, protocol
 abstract: New year brings new possibilities and a new environment.  I've been working on the most Widely deployed key-value store, the domain name system.  Primary and secondary name services are available, including dynamic updates, notify, and tsig authentication.
 ---
 
-TODO: ximin
-hannes: opiniated from scratch -> opiniated from-scratch
-<infinity0> when you use a multi-word phrase as an adjective it's usually best to hyphenate it to avoid ambiguity
-<infinity0> key <- random; ciphertext = header + aead(plaintext, key) where header = concat([ deterministic-encrypt(msg=key, derived_key) for derived_key in derived_keys ])
-<infinity0> flop, maker: does that look secure to you ^ usually deterministic encryption isn't but here i'm only using it to encrypt a randomly-generated key
-<infinity0> actually that should be aead(header + plaintext, key)
-<infinity0> hannes: "There are three building blocks for DNS" - i'd also rephrase that paragraph to move the stuff in brackets out of the brackets
-
 ## 2018
 
 At the end of 2017, I resigned from my PostDoc position at University of
@@ -39,7 +31,7 @@ want to get it smoothly up and running (spoiler: I already use
 [albatross](/Posts/VMM) in production).
 
 To kick off (3% of 2018 is already used) this year, I'll talk in more detail
-about [µDNS](https://github.com/roburio/udns), an opinionated from scratch
+about [µDNS](https://github.com/roburio/udns), an opinionated from-scratch
 re-engineered DNS library, which I've been using since Christmas 2017 in production for
 [ns.nqsb.io](https://github.com/hannesm/ns.nqsb.io) and
 [ns.robur.io](https://git.robur.io/?p=ns.robur.io.git;a=summary).  The
@@ -83,12 +75,12 @@ responsible for which second level domain name (such as "example.com"), and so
 on.  There are at least two name servers for each domain name in separate
 networks - in case one is unavailable the other can be reached.
 
-There are three building blocks for DNS: the client (usually your C library
-which provides `gethostbyname` amongst other system calls), the authoritative
-servers (handing out information about your domain name), and a recursive
-resolver (seeded with the root servers it is able to find out the name for any
-domain name).  Additionally, there are forwarders (caching DNS proxies, not
-relevant from an operational perspective).
+There are three building blocks for DNS: a client, usually your C library that
+provides `gethostbyname` amongst other system calls, an authoritative servers,
+which handing out information about your domain name, and a recursive resolver,
+which once seeded with the root servers it is able to find out the name for any
+domain name.  Additionally, there are forwarders and stub resolvers, which are
+caching DNS proxies, not relevant from an operational perspective.
 
 To get some terminology, a DNS client sends a query, consisting of a domain
 name and a query type, and expects a set of answers, which are called resource
