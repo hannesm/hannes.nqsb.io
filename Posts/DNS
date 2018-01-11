@@ -40,18 +40,18 @@ want to get it smoothly up and running (spoiler: I already use
 
 To kick off (3% of 2018 is already used) this year, I'll talk in more detail
 about [µDNS](https://github.com/roburio/udns), an opinionated from scratch
-re-engineered DNS library, which I use it since Christmas 2017 in production for
+re-engineered DNS library, which I've been using since Christmas 2017 in production for
 [ns.nqsb.io](https://github.com/hannesm/ns.nqsb.io) and
 [ns.robur.io](https://git.robur.io/?p=ns.robur.io.git;a=summary).  The
 development started in March 2017, and continued over several evenings and long
 weekends.  My initial motivation was to implement a recursive resolver to run on
 my laptop.  I had a working prototype in use on my laptop over 4 months in the
-summer 2017, but that code is not in a good shape, so I went down the rabbit
+summer 2017, but that code was not in a good shape, so I went down the rabbit
 hole and (re)wrote a server (and learned more about GADT).  A configurable
 resolver needs a server, as local overlay, usually anyways.  Furthermore,
 dynamic updates are standardised and thus a configuration interface exists
 inside the protocol, even with hmac-signatures for authentication!
-Coincidentally, I started to solve another issue, automated management of let's
+Coincidentally, I started to solve another issue, namely automated management of let's
 encrypt certificates (see [this
 branch](https://github.com/hannesm/ocaml-letsencrypt/tree/nsupdate) for an
 initial hack).  On my journey, I also reported a cache poisoning vulnerability,
@@ -76,12 +76,12 @@ decentralised.  It was initially "specified" in Nov 1987 in [RFC
 technical RFCs, 10 security related, 5 best current practises and another 10
 informational.  The basic encoding and mechanisms did not change.
 
-In the Internet, there is a set of root servers (administrated by IANA) which
-provide the information which name servers are authoritative for which top level
-domain (such as ".com").  They provide the information which name servers are
+On the Internet, there is a set of root servers (administrated by IANA) which
+provide the information about which name servers are authoritative for which top level
+domain (such as ".com").  They provide the information about which name servers are
 responsible for which second level domain name (such as "example.com"), and so
 on.  There are at least two name servers for each domain name in separate
-networks - in case one is unavailable, the other can be reached.
+networks - in case one is unavailable the other can be reached.
 
 There are three building blocks for DNS: the client (usually your C library
 which provides `gethostbyname` amongst other system calls), the authoritative
@@ -90,14 +90,14 @@ resolver (seeded with the root servers it is able to find out the name for any
 domain name).  Additionally, there are forwarders (caching DNS proxies, not
 relevant from an operational perspective).
 
-To get some terminology, a DNS client sends a question, consisting of a domain
+To get some terminology, a DNS client sends a query, consisting of a domain
 name and a query type, and expects a set of answers, which are called resource
 records, and contain: name, time to live, type, and data.  The resolver
-iteratively requests resource records from authoritative servers, until it
-resolved the requested domain name or failed (name does not exist, server
+iteratively requests resource records from authoritative servers, until the requested
+domain name is resolved or fails (name does not exist, server
 failure, server offline).
 
-DNS usually uses UDP as transport, which is not reliable and limited to 512 byte
+DNS usually uses UDP as transport which is not reliable and limited to 512 byte
 payload on the Internet (due to various middleboxes).  DNS can also be
 transported via TCP, and even via TLS over UDP or TCP.  If a DNS packet
 transferred via UDP is larger than 512 bytes, it is cut at the 512 byte mark,
@@ -120,10 +120,10 @@ data.
 Each domain name is a case sensitive string of up to 255 bytes, separated by `.`
 into labels of up to 63 bytes each.  A label is either encoded by its length
 followed by the content, or by an offset to the start of a label in the current
-DNS frame (poor mans compression).  Care must be taken during decodign to avoid
+DNS frame (poor mans compression).  Care must be taken during decoding to avoid
 cycles in offsets.  Common operations on domain names are comparison: equality,
 ordering, and also whether some domain name is a subdomain of another domain
-name, should be efficient.  My initial representation naively was a list of
+name, should be efficient.  My initial representation naïvely was a list of
 strings, now it is an array of strings in reverse order.  This speeds up common
 operations by a factor of 5 (see test/bench.ml).
 
@@ -144,7 +144,7 @@ byte length which is not completely consumed by the specific resource data
 subparser (an A record must always consume four bytes).  Failing to check this can
 lead to a way to exfiltrate data without getting noticed.
 
-Each zone (a served domain name) contains a SOA, start of authority, entry,
+Each zone (a served domain name) contains a SOA "start of authority" entry,
 which includes the primary nameserver name, the hostmaster's email address (both
 encoded as domain name), a serial number of the zone, a refresh, retry, expiry,
 and minimum interval (all encoded as 32bit unsigned number in seconds).  Common
@@ -160,9 +160,9 @@ a tag ("issue") and a value ("letsencrypt.org").
 The operation of a DNS server is to listen for a request and serve a reply.
 Data to be served can be canonically encoded (the RFC describes the format) in a
 zone file.  Apart from insecurity in DNS server implementations, another attack
-vector are amplification attacks, where an attacker crafts a small UDP frame
+vector are amplification attacks where an attacker crafts a small UDP frame
 with a fake source IP address, and the server answers with a large response to
-that address, which may lead to a DoS attack.  Various mitigations exist,
+that address which may lead to a DoS attack.  Various mitigations exist
 including rate limiting, serving large replies only via TCP, ...
 
 Internally, the zone file data is stored in a tree (module
@@ -287,7 +287,7 @@ and includes a dependency upon an authenticator (implemented using the
 [nocrypto](https://github.com/mirleft/ocaml-nocrypto) library, and
 [ptime](http://erratique.ch/software/ptime)).
 
-### Deployment and let's encrypt
+### Deployment and Let's Encrypt
 
 To deploy servers without much persistent data, an authentication schema is
 hardcoded in the dns-server: shared secrets are also stored as DNS entries
@@ -308,7 +308,7 @@ There is no persistent storage of updates yet, but this can be realised by
 implementing a secondary (which is notified on update) that writes every new
 zone to persistent storage (e.g. [disk](https://github.com/mirage/mirage-block)
 or [git](https://github.com/mirage/ocaml-git)).  I also plan to have an
-automated let's encrypt certificate unikernel which listens for certificate
+automated Let's Encrypt certificate unikernel which listens for certificate
 signing requests and stores signed certificates in DNS.  Luckily the year only
 started and there's plenty of time left.
 
