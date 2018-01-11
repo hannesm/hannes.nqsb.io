@@ -53,7 +53,7 @@ Windows](https://docs.docker.com/docker-for-windows/release-notes/#docker-commun
 But let's get started with some content.  Please keep in mind that while the
 code is publicly available, it is not yet released (mainly since the test
 coverage is not high enough, and the lack of documentation).  I appreciate early
-adoptors, please let me know if you find any issues or find a use case which is
+adopters, please let me know if you find any issues or find a use case which is
 not straightforward to solve.  This won't be the last article about DNS this
 year - persistent storage, resolver, let's encrypt support are still missing.
 
@@ -142,9 +142,9 @@ encoded as domain name), a serial number of the zone, a refresh, retry, expiry,
 and minimum interval (all encoded as 32bit unsigned number in seconds).  Common
 resource records include A, which payload is 32bit IPv4 address.  A nameserver
 (NS) record carries a domain name as payload.  A mail exchange (MX) whose
-payload is a 16bit priotiy and a domain name.  A CNAME record is an alias to
+payload is a 16bit priority and a domain name.  A CNAME record is an alias to
 another domain name.  These days, there are even records to specify the
-certificate authority authorisation (CAA) records containing a flags (critical),
+certificate authority authorisation (CAA) records containing a flag (critical),
 a tag ("issue") and a value ("letsencrypt.org").
 
 ## Server
@@ -170,7 +170,7 @@ implementation uses balanced binary trees, and therefore searching and insertion
 take time logarithmic in the size of the map").
 
 The server looks up the queried name, and in the returned Dns_map the queried
-type. The found resource records are send as answer, which also includes the
+type. The found resource records are sent as answer, which also includes the
 question and authority information (NS records of the zone) and additional glue
 records (IP addresses of names mentioned earlier in the same zone).
 
