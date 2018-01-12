@@ -192,13 +192,15 @@ let lookup_ns t =
 Instead, I use in my current rewrite [generalized algebraic data
 types](https://en.wikipedia.org/wiki/Generalized_algebraic_data_type) (read
 [OCaml manual](http://caml.inria.fr/pub/docs/manual-ocaml/extn.html#sec251) and
-[Mads Hartmann blog
-post](http://mads-hartmann.com/ocaml/2015/01/05/gadt-ocaml.html)) to preserve a
-relation between key and value (and A record has a list of IPv4 addresses and a
-ttl as value) - similar to [hmap](http://erratique.ch/software/hmap), but
-different: a closed key-value mapping (the GADT), no int for each key and
-mutable state.  Thanks to Justus Matthiesen for helping me with GADTs and this
-code.  Look into the
+[Mads Hartmann blog post about use cases for
+GADTs](http://mads-hartmann.com/ocaml/2015/01/05/gadt-ocaml.html), [Andreas
+Garnæs about using GADTs for GraphQL type
+modifiers](https://andreas.github.io/2018/01/05/modeling-graphql-type-modifiers-with-gadts/))
+to preserve a relation between key and value (and A record has a list of IPv4
+addresses and a ttl as value) - similar to
+[hmap](http://erratique.ch/software/hmap), but different: a closed key-value
+mapping (the GADT), no int for each key and mutable state.  Thanks to Justus
+Matthiesen for helping me with GADTs and this code.  Look into the
 [interface](https://github.com/roburio/udns/blob/master/src/dns_map.mli) and
 [implementation](https://github.com/roburio/udns/blob/master/src/dns_map.ml).
 
