@@ -9,7 +9,6 @@ html a {
     text-decoration-style: wavy;
     text-decoration-color: #1a1a1a;
     color: black;
-    line-height: 1.6;
 }
 
 html a:visited {
@@ -17,6 +16,9 @@ html a:visited {
     text-decoration-style: wavy;
     text-decoration-color: #1a1a1a;
     color: black;
+}
+
+p {
     line-height: 1.6;
 }
 
