@@ -75,12 +75,12 @@ responsible for which second level domain name (such as "example.com"), and so
 on.  There are at least two name servers for each domain name in separate
 networks - in case one is unavailable the other can be reached.
 
-There are three building blocks for DNS: a client, usually your C library that
-provides `gethostbyname` amongst other system calls, an authoritative server,
-which is handing out information about your domain name, and a recursive resolver,
-which once seeded with the root servers it is able to find out the name for any
-domain name.  Additionally, there are forwarders and stub resolvers, which are
-caching DNS proxies, not relevant from an operational perspective.
+The building blocks for DNS are: the resolver, a stub (`gethostbyname` provided
+by your C library) or caching forwarding resolver (at your ISP), which send DNS
+packets to another resolver, or a recursive resolver which, once seeded with the
+root servers, finds out the IP address of a requested domain name.  The other
+part are authoritative servers, which reply to requests for their configured
+domain.
 
 To get some terminology, a DNS client sends a query, consisting of a domain
 name and a query type, and expects a set of answers, which are called resource
