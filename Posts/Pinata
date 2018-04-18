@@ -56,7 +56,7 @@ upgraded the Piñata and released the [MirageOS Security Advisory
 
 We analysed the Piñata's access logs to the and bucketed them into website traffic and bounty connections.  We are still wondering what happened in July 2015 and July 2017 where the graph shows spikes.  Could it be a presentation mentioning the Piñata, or a new automated tool which tests for TLS vulnerabilities, or an increase in market price for Bitcoins?
 
-![Piñata access](https://berlin.ccc.de/~hannes/pinata_access_20180403.png) ![Piñata access cumulative](https://berlin.ccc.de/~hannes/pinata_access_cumulative_20180403.png)
+![Piñata access](/static/img//pinata_access_20180403.png) ![Piñata access cumulative](/static/img/pinata_access_cumulative_20180403.png)
 
 The cumulative graph shows that more than 500,000 accesses to the Piñata website, and more than 150,000 attempts at connecting to the Piñata bounty.
 
