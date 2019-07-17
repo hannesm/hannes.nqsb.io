@@ -1,8 +1,8 @@
 ---
-title:
+title: Summer 2019
 author: hannes
 tags: mirageos, security, package signing, tls, monitoring, deployment
-abstract:
+abstract: Bringing MirageOS into production, take IV: monitoring, CalDAV, DNS
 ---
 
 ## Working at [robur](https://robur.io)
