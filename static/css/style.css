@@ -18,6 +18,11 @@ html a:visited {
     color: black;
 }
 
+li {
+    margin: 0.5em 0;
+    line-height: 1.6;
+}
+
 p {
     line-height: 1.6;
 }
