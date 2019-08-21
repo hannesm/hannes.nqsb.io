@@ -15,7 +15,7 @@ Robur is part of the non-profit company [Center for the Cultivation of Technolog
 
 While several examples are running since years (the [MirageOS website](https://mirage.io), [Bitcoin Piñata](http://ownme.ipredator.se), [TLS demo server](https://tls.nqsb.io), etc.), and some shell-scripts for cloud providers are floating around, it is not (yet) streamlined.
 
-Service deployment is complex: you have to consider its configuration, exfiltration of logs and metrics, provisioning with valid key material (TLS certificate, hmac shared secret) and authenticators (CA certificate, ssh key fingerprint). Instead of requirign millions lines of code during orchestration (such as Kubernetes), creating the images (docker), or provisioning (ansible), why not minimise the required configuration and dependencies?
+Service deployment is complex: you have to consider its configuration, exfiltration of logs and metrics, provisioning with valid key material (TLS certificate, hmac shared secret) and authenticators (CA certificate, ssh key fingerprint). Instead of requiring millions lines of code during orchestration (such as Kubernetes), creating the images (docker), or provisioning (ansible), why not minimise the required configuration and dependencies?
 
 [Earlier in this blog I introduced Albatross](/Posts/VMM), which serves in an enhanced version as our deployment platform on a physical machine (running 15 unikernels at the moment), I won't discuss more detail thereof in this article.
 
