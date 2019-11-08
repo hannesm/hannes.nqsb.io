@@ -21,7 +21,7 @@ minimal operating systems for high-assurance services".  robur is only possible
 by generous donations in autumn 2017, enthusiastic collaborateurs, supportive
 friends, and a motivated community, thanks to all.  We will receive funding from
 the [prototypefund](https://prototypefund.de/project/robur-io/) to work on a
-[CalDAV server](http://robur.io/Projects/CalDAV) implementation in OCaml
+[CalDAV server](https://robur.io/Our%20Work/Projects#CalDAV-Server) implementation in OCaml
 targeting MirageOS.  We're still looking for donations and further funding,
 please get in touch.  Apart from CalDAV, I want to start the year by finishing
 several projects which I discovered on my hard drive.  This includes DNS, [opam
