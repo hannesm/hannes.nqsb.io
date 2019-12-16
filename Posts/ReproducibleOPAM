@@ -35,7 +35,7 @@ Additional environment variables may be captured or used by opam packages to pro
 
 ## Tooling
 
-**TL;DR: The *builder* builds an opam package, and outputs `.opam-switch`, `.build-hashes.N`, and `.build-environment.N`. The *rebuilder* uses these artifacts as input, builds the package and outputs another `.build-hashes.M` and `.build-environment.M`.**
+*TL;DR: A **build** builds an opam package, and outputs `.opam-switch`, `.build-hashes.N`, and `.build-environment.N`. A **rebuild** uses these artifacts as input, builds the package and outputs another `.build-hashes.M` and `.build-environment.M`.*
 
 The command-line utility `orb` can be installed and used:
 
