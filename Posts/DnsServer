@@ -339,7 +339,7 @@ $ solo5-hvt --net:service=tap2 -- letsencrypt.hvt --keys=...
 $ ocertify 10.0.42.2 foo.mirage
 ```
 
-For actual testing with let's encrypt servers you need to have the primary and secondary deployed on your remote hosts, and your domain needs to be delegated to these servers. Good luck.
+For actual testing with let's encrypt servers you need to have the primary and secondary deployed on your remote hosts, and your domain needs to be delegated to these servers. Good luck. And ensure you have backup your git repository.
 
 As fine print, while this tutorial was about the `mirage` zone, you can stick any number of zones into the git repository. If you use a `_keys` file (without any domain prefix), you can configure hmac secrets for all zones, i.e. something to use in your let's encrypt unikernel and secondary unikernel. Dynamic addition of zones is supported, just create a new zonefile and notify the primary, the secondary will be notified and pick it up. The primary responds to a signed SOA for the root zone (i.e. requested by the secondary) with the SOA response (not authoritative), and additionally notifications for all domains of the primary.
 
