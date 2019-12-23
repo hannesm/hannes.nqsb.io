@@ -175,7 +175,9 @@ Ok, this onotify command line could be setup as a git post-commit hook, or run m
 
 ### Secondary
 
-It's time to figure out how to integrate the secondary name server. The `secondary` subdirectory of the cloned `unikernels` repository is another unikernel that acts as secondary server. It's only command line argument is a list of hmac secrets used for authenticating that the received data originates from the primary server. Data is initially transferred by a [full zone transfer (AXFR)](https://tools.ietf.org/html/rfc5936), later updates (upon refresh timer or notify request sent by the primary) use [incremental (IXFR)](https://tools.ietf.org/html/rfc1995). Zone transfer requests and data are authenticated with transaction signatures again.
+It's time to figure out how to integrate the secondary name server. An already existing bind or something else that accepts notifications and issues zone transfers with hmac-sha256 secrets should work out of the box. If you encounter interoperability issues, please get in touch with me.
+
+The `secondary` subdirectory of the cloned `unikernels` repository is another unikernel that acts as secondary server. It's only command line argument is a list of hmac secrets used for authenticating that the received data originates from the primary server. Data is initially transferred by a [full zone transfer (AXFR)](https://tools.ietf.org/html/rfc5936), later updates (upon refresh timer or notify request sent by the primary) use [incremental (IXFR)](https://tools.ietf.org/html/rfc1995). Zone transfer requests and data are authenticated with transaction signatures again.
 
 Convenience by OCaml DNS is that transfer key names matter, and are of the form <primary-ip>.<secondary-ip>._transfer.domain, i.e. `1.1.1.1.2.2.2.2._transfer.mirage` if the primary server is 1.1.1.1, and the secondary 2.2.2.2. Encoding the IP address in the name allows both parties to start the communication: the secondary starts by requesting a SOA for all domains for which keys are provided on command line, and if an authoritative SOA answer is received, the AXFR is triggered. The primary server emits notification requests on startup and then on every zone change (i.e. via git pull) to all secondary IP addresses of transfer keys present for the specific zone in addition to the notifications to the NS records in the zone.
 
@@ -307,17 +309,17 @@ Since I avoid persistent storage when possible, and also don't want to integrate
 
 For encoding of certificates, the DANE working group specified [TLSA](https://tools.ietf.org/html/rfc6698.html#section-7.1) records in DNS. They are quadruples of usage, selector, matching type, and ASN.1 DER-encoded material. We set usage to 3 (domain-issued certificate), matching type to 0 (no hash), and selector to 0 (full certificate) or 255 (private usage) for certificate signing requests. The interaction is as follows:
 
-0. Primary, secondary, and let's encrypt unikernels are running
-1. A service (`ocertify`, `unikernels/certificate`, or the `dns-certify.mirage` library) demands a TLS certificate, and has a hmac-secret for the primary DNS
-2. The service generates a certificate signing request with the desired hostname(s), and performs an nsupdate with TLSA 255 <DER encoded signing-request>
-3. The primary accepts the update, pushes the new zone to git, and sends notifies to secondary and let's encrypt unikernels which (incrementally) transfer the zone
-4. The let's encrypt unikernel notices while transferring the zone a signing request without a certificate, starts HTTP interaction with let's encrypt
-5. The let's encrypt unikernel solves the challenge, sends the response as update of a TXT record to the primary nameserver
-6. The primary pushes the TXT record to git, and notifies secondaries (which transfer the zone)
-7. The let's encrypt servers request the TXT record from either or both authoritative name servers
-8. The let's encrypt unikernel polls for the issued certificate and send an update to the primary TLSA 0 <DER encoded certificate>
-9. The primary pushes the certificate to git, notifies secondaries (which transfer the zone)
-10. The service polls TLSA records for the hostname, and use it upon retrieval
+1. Primary, secondary, and let's encrypt unikernels are running
+2. A service (`ocertify`, `unikernels/certificate`, or the `dns-certify.mirage` library) demands a TLS certificate, and has a hmac-secret for the primary DNS
+3. The service generates a certificate signing request with the desired hostname(s), and performs an nsupdate with TLSA 255 <DER encoded signing-request>
+4. The primary accepts the update, pushes the new zone to git, and sends notifies to secondary and let's encrypt unikernels which (incrementally) transfer the zone
+5. The let's encrypt unikernel notices while transferring the zone a signing request without a certificate, starts HTTP interaction with let's encrypt
+6. The let's encrypt unikernel solves the challenge, sends the response as update of a TXT record to the primary nameserver
+7. The primary pushes the TXT record to git, and notifies secondaries (which transfer the zone)
+8. The let's encrypt servers request the TXT record from either or both authoritative name servers
+9. The let's encrypt unikernel polls for the issued certificate and send an update to the primary TLSA 0 <DER encoded certificate>
+10. The primary pushes the certificate to git, notifies secondaries (which transfer the zone)
+11. The service polls TLSA records for the hostname, and use it upon retrieval
 
 Note that neither the signing request nor the certificate contain private key material, thus it is fine to serve them publically. Please also note, that the service polls for the certificate for the hostname in DNS, which is valid (start and end date) certificate and uses the same public key, this certificate is used and steps 3-10 are not done.
 
