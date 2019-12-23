@@ -345,6 +345,8 @@ As fine print, while this tutorial was about the `mirage` zone, you can stick an
 
 This tutorial presented how to use the OCaml DNS based unikernels to run authoritative name servers for your domain, using a git repository as the source of truth, dynamic authenticated updates, and let's encrypt certificate issuing.
 
+There are further steps to take, such as monitoring -- have a look at the `monitoring` branch of the opam repository above, and the `future-robur` branch of the unikernels repository above, which use a second network interface for reporting syslog and metrics to telegraf / influx / grafana. Some DNS features are still missing, most prominently DNSSec.
+
 I'd like to thank all people involved in this software stack, without other key components, including [git](https://github.com/mirage/ocaml-git), [irmin 2.0](https://irmin.io/), [nocrypto](https://github.com/mirleft/ocaml-nocrypto), [awa-ssh](https://github.com/haesbaert/awa-ssh), [cohttp](https://github.com/mirage/ocaml-cohttp), [solo5](https://github.com/solo5/sol5), [mirage](https://github.com/mirage/mirage), [ocaml-letsencrypt](https://github.com/mmaker/ocaml-letsencrypt), and more.
 
 If you want to support our work on MirageOS unikernels, please [donate to robur](https://robur.coop/Donate). I'm interested in feedback, either via [twitter](https://twitter.com/h4nnes), [hannesm@mastodon.social](https://mastodon.social/@hannesm) or an issue on the [data repository](https://github.com/hannesm/hannes.nqsb.io/issues).
