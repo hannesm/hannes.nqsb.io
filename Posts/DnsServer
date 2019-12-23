@@ -1,5 +1,5 @@
 ---
-title: Deploying authoritative µDNS servers
+title: Deploying authoritative OCaml-DNS servers as MirageOS unikernels
 author: hannes
 tags: mirageos, protocol, deployment
 abstract: A tutorial how to deploy authoritative name servers, let's encrypt, and updating entries from unix services.
@@ -7,7 +7,7 @@ abstract: A tutorial how to deploy authoritative name servers, let's encrypt, an
 
 ## Goal
 
-Have your domain served by µDNS authoritative name servers. Data is stored in a git remote, and let's encrypt certificates can be requested to DNS. This software is deployed since more than two years for several domains such as `nqsb.io` and `robur.coop`.
+Have your domain served by OCaml-DNS authoritative name servers. Data is stored in a git remote, and let's encrypt certificates can be requested to DNS. This software is deployed since more than two years for several domains such as `nqsb.io` and `robur.coop`. This present the authoritative server side, and certificate library of the OCaml-DNS implementation formerly known as [µDNS](/Posts/DNS).
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ The last command set environment variables in your current shell session, please
 
 ### Validation of our zonefile
 
-First let's check that µDNS can parse our zonefile:
+First let's check that OCaml-DNS can parse our zonefile:
 
 ```shell
 $ opam install dns-cli #installs ~/.opam/udns/bin/ozone and other binaries
