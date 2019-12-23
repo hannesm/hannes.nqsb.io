@@ -321,7 +321,7 @@ For encoding of certificates, the DANE working group specified [TLSA](https://to
 10. The primary pushes the certificate to git, notifies secondaries (which transfer the zone)
 11. The service polls TLSA records for the hostname, and use it upon retrieval
 
-Note that neither the signing request nor the certificate contain private key material, thus it is fine to serve them publically. Please also note, that the service polls for the certificate for the hostname in DNS, which is valid (start and end date) certificate and uses the same public key, this certificate is used and steps 3-10 are not done.
+Note that neither the signing request nor the certificate contain private key material, thus it is fine to serve them publically. Please also note, that the service polls for the certificate for the hostname in DNS, which is valid (start and end date) certificate and uses the same public key, this certificate is used and steps 3-10 are not executed.
 
 The let's encrypt unikernel does not serve anything, it is a reactive system which acts upon notification from the primary. Thus, it can be executed in a private address space (with a NAT). Since the OCaml DNS server stack needs to push notifications to it, it preserves all incoming signed SOA requests as candidates for notifications on update. The let's encrypt unikernel ensures to always have a connection to the primary to receive notifications.
 
