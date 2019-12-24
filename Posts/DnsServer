@@ -237,7 +237,7 @@ ns2	A	10.0.42.3
 # we also need an additional transfer key
 git-repo> cat mirage._keys
 personal._update.mirage. DNSKEY 0 3 163 kJJqipaQHQWqZL31Raar6uPnepGFIdtpjkXot9rv2xg=
-10.0.42.2.10.0.42.3._update.mirage. DNSKEY 0 3 163 cDK6sKyvlt8UBerZlmxuD84ih2KookJGDagJlLVNo20=
+10.0.42.2.10.0.42.3._transfer.mirage. DNSKEY 0 3 163 cDK6sKyvlt8UBerZlmxuD84ih2KookJGDagJlLVNo20=
 git-repo> git commit -m "udpates" . && git push
 ```
 
@@ -260,7 +260,7 @@ $ dig any mirage @10.0.42.2
 $ cd ../secondary
 $ mirage configure -t hvt --prng fortuna
 $ make
-$ solo5-hvt --net:service=tap0 -- secondary.hvt --ipv4=10.0.42.3/24 --keys=10.0.42.2.10.0.42.3._update.mirage:SHA256:cDK6sKyvlt8UBerZlmxuD84ih2KookJGDagJlLVNo20=
+$ solo5-hvt --net:service=tap0 -- secondary.hvt --ipv4=10.0.42.3/24 --keys=10.0.42.2.10.0.42.3._transfer.mirage:SHA256:cDK6sKyvlt8UBerZlmxuD84ih2KookJGDagJlLVNo20=
 # an ipv4-gateway is not needed in this setup, but in real deployment later
 # it should start up and transfer the mirage zone from the primary
 
