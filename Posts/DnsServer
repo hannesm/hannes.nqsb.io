@@ -260,7 +260,7 @@ $ dig any mirage @10.0.42.2
 $ cd ../secondary
 $ mirage configure -t hvt --prng fortuna
 $ make
-$ solo5-hvt --net:service=tap0 -- secondary.hvt --ipv4=10.0.42.3/24 --keys=10.0.42.2.10.0.42.3._transfer.mirage:SHA256:cDK6sKyvlt8UBerZlmxuD84ih2KookJGDagJlLVNo20=
+$ solo5-hvt --net:service=tap1 -- secondary.hvt --ipv4=10.0.42.3/24 --keys=10.0.42.2.10.0.42.3._transfer.mirage:SHA256:cDK6sKyvlt8UBerZlmxuD84ih2KookJGDagJlLVNo20=
 # an ipv4-gateway is not needed in this setup, but in real deployment later
 # it should start up and transfer the mirage zone from the primary
 
