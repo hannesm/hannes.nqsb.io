@@ -1,0 +1,104 @@
+---
+title: The road ahead for MirageOS in 2021
+author: hannes
+tags: mirageos
+abstract: Home office, MirageOS unikernels, 2020 recap, 2021 tbd
+---
+
+## Introduction
+
+2020 was an intense year. I hope you're healthy and keep being healthy. I am privileged (as lots of software engineers and academics are) to be able to work from home during the pandemic. Let's not forget people in less privileged situations,  and let’s try to give them as much practical, psychological and financial support as we can these days. And as much joy as possible to everyone around :)
+
+I cancelled the autumn MirageOS retreat due to the pandemic. Instead I collected donations for our hosts in Marrakech - they were very happy to receive our financial support, since they had a difficult year, since their income is based on tourism. I hope that in autumn 2021 we'll have an on-site retreat again.
+
+For 2021, we (at [robur](https://robur.coop)) got a grant from the EU (via [NGI pointer](https://pointer.ngi.eu)) for "Deploying MirageOS" (more details below), and another grant from [OCaml software foundation](https://ocaml-sf.org) for securing the opam supply chain (using [conex](https://github.com/hannesm/conex)). Some long-awaited releases for MirageOS libraries, namely a [ssh implementation](https://discuss.ocaml.org/t/ann-first-release-of-awa-ssh) and a rewrite of our [git implementation](https://discuss.ocaml.org/t/ann-release-of-ocaml-git-v3-0-duff-encore-decompress-etc/) have already been published.
+
+With my MirageOS view, 2020 was a pretty successful year, where we managed to add more features, fixed lots of bugs, and paved the road ahead. I want to thank [OCamlLabs](https://ocamllabs.io/) for funding work on MirageOS maintenance.
+
+## Recap 2020
+
+Here is a very subjective random collection of accomplishments in 2020, where I was involved with some degree.
+
+### NetHSM
+
+[NetHSM](https://www.nitrokey.com/products/nethsm) is a hardware security module in software. It is a product that uses MirageOS for security, and is based on the [muen](https://muen.sk) separation kernel. We at [robur](https://robur.coop) were heavily involved in this product. It already has been security audited by an external team. You can pre-order it from Nitrokey.
+
+### TLS 1.3
+
+Dating back to 2016, at the [TRON](https://www.ndss-symposium.org/ndss2016/tron-workshop-programme/) (TLS 1.3 Ready or NOt), we developed a first draft of a 1.3 implementation of [OCaml-TLS](https://github.com/mirleft/ocaml-tls). Finally in May 2020 we got our act together, including ECC (ECDH P256 from [fiat](https://github.com/mit-plv/fiat-crypto/), X25519 from [hacl](https://project-everest.github.io/)) and testing with [tlsfuzzer](https://github.com/tlsfuzzer/tlsfuzzer), and release tls 0.12.0 with TLS 1.3 support. Later we added [ECC ciphersuites to TLS version 1.2](https://github.com/mirleft/ocaml-tls/pull/414), implemented [ChaCha20/Poly1305](https://github.com/mirleft/ocaml-tls/pull/414), and fixed an [interoperability issue with Go's implementation](https://github.com/mirleft/ocaml-tls/pull/424).
+
+[Mirage-crypto](https://github.com/mirage/mirage-crypto) provides the underlying cryptographic primitives, initially released in March 2020 as a fork of [nocrypto](https://github.com/mirleft/ocaml-nocrypto) -- huge thanks to [pqwy](https://github.com/pqwy) for his great work. Mirage-crypto detects [CPU features at runtime](https://github.com/mirage/mirage-crypto/pull/53) (thanks to [Julow](https://github.com/Julow)) ([bugfix for bswap](https://github.com/mirage/mirage-crypto/pull/96)), using constant time modular exponentation (powm_sec) and hardens against Lenstra's CRT attack, supports [compilation on Windows](https://github.com/mirage/mirage-crypto/pull/39) (thanks to [avsm](https://github.com/avsm)), [async entropy harvesting](https://github.com/mirage/mirage-crypto/pull/90) (thanks to [seliopou](https://github.com/seliopou)), [32 bit support](https://github.com/mirage/mirage-crypto/pull/65), [chacha20/poly1305](https://github.com/mirage/mirage-crypto/pull/72) (thanks to [abeaumont](https://github.com/abeaumont)), [cross-compilation](https://github.com/mirage/mirage-crypto/pull/84) (thanks to [EduardoRFS](https://github.com/EduardoRFS)) and [various](https://github.com/mirage/mirage-crypto/pull/78) [bug](https://github.com/mirage/mirage-crypto/pull/81) [fixes](https://github.com/mirage/mirage-crypto/pull/83), even [memory leak](https://github.com/mirage/mirage-crypto/pull/95) (thanks to [talex5](https://github.com/talex5) for reporting several of these issues), and [RSA](https://github.com/mirage/mirage-crypto/pull/99) [interoperability](https://github.com/mirage/mirage-crypto/pull/100) (thanks to [psafont](https://github.com/psafont) for investigation and [mattjbray](https://github.com/mattjbray) for reporting). This library feels very mature now - being used by multiple stakeholders, and lots of issues have been fixed in 2020.
+
+### Qubes Firewall
+
+The [MirageOS based Qubes firewall](https://github.com/mirage/qubes-mirage-firewall/) is the most widely used MirageOS unikernel. And it got major updates: in May [Steffi](https://github.com/linse) [announced](https://groups.google.com/g/qubes-users/c/Xzplmkjwa5Y) her and [Mindy's](https://github.com/yomimono) work on improving it for Qubes 4.0 - including [dynamic firewall rules via QubesDB](https://www.qubes-os.org/doc/vm-interface/#firewall-rules-in-4x). Thanks to [prototypefund](https://prototypefund.de/project/portable-firewall-fuer-qubesos/) for sponsoring.
+
+In October 2020, we released [Mirage 3.9](https://mirage.io/blog/announcing-mirage-39-release) with PVH virtualization mode (thanks to [mato](https://github.com/mato)). There's still a [memory leak](https://github.com/mirage/qubes-mirage-firewall/issues/120) to be investigated and fixed.
+
+### IPv6
+
+In December, with [Mirage 3.10](https://mirage.io/blog/announcing-mirage-310-release) we got the IPv6 code up and running. Now MirageOS unikernels have a dual stack available, besides IPv4-only and IPv6-only network stacks. Thanks to [nojb](https://github.com/nojb) for the initial code and [MagnusS](https://github.com/MagnusS).
+
+Turns out this blog, but also robur services, are now available via IPv6 :)
+
+### Albatross
+
+Also in December, I pushed an initial release of [albatross](https://github.com/roburio/albatross), a unikernel orchestration system with remote access. *Deploy your unikernel via a TLS handshake -- the unikernel image is embedded in the TLS client certificates.*
+
+Thanks to [reynir](https://github.com/reynir) for statistics support on Linux and improvements of the systemd service scripts. Also thanks to [cfcs](https://github.com/cfcs) for the initial Linux port.
+
+### CA certs
+
+For several years I postponed the problem of how to actually use the operating system trust anchors for OCaml-TLS connections. Thanks to [emillon](https://github.com/emillon) for initial code, there are now [ca-certs](https://github.com/mirage/ca-certs) and [ca-certs-nss](https://github.com/mirage/ca-certs-nss) opam packages (see [release announcement](https://discuss.ocaml.org/t/ann-ca-certs-and-ca-certs-nss)) which fills this gap.
+
+## Unikernels
+
+I developed several useful unikernels in 2020, and also pushed [a unikernel gallery](https://mirage.io/wiki/gallery) to the Mirage website:
+
+### Traceroute in MirageOS
+
+I already wrote about [traceroute](/Posts/Traceroute) which traces the routing to a given remote host.
+
+### Unipi - static website hosting
+
+[Unipi](https://github.com/roburio/unipi) is a static site webserver which retrieves the content from a remote git repository. Let's encrypt certificate provisioning and dynamic updates via a webhook to be executed for every push.
+
+#### TLSTunnel - TLS demultiplexing
+
+The physical machine this blog and other robur infrastructure runs on has been relocated from Sweden to Germany mid-December. Thanks to UPS! Fewer IPv4 addresses are available in the new data center, which motivated me to develop [tlstunnel](https://github.com/roburio/tlstunnel).
+
+The new behaviour is as follows (see the `monitoring` branch):
+- listener on TCP port 80 which replies with a permanent redirect to `https`
+- listener on TCP port 443 which forwards to a backend host if the requested server name is configured
+- its configuration is stored on a block device, and can be dynamically changed (with a custom protocol authenticated with a HMAC)
+- it is setup to hold a wildcard TLS certificate and in DNS a wildcard entry is pointing to it
+- setting up a new service is very straightforward: only the new name needs to be registered with tlstunnel together with the TCP backend, and everything will just work
+
+## 2021
+
+The year started with a release of [awa](https://discuss.ocaml.org/t/ann-first-release-of-awa-ssh), a SSH implementation in OCaml (thanks to [haesbaert](https://github.com/haesbaert) for initial code). This was followed by a [git 3.0 release](https://discuss.ocaml.org/t/ann-release-of-ocaml-git-v3-0-duff-encore-decompress-etc/) (thanks to [dinosaure](https://github.com/dinosaure)).
+
+### Deploying MirageOS - NGI Pointer
+
+For 2021 we at robur received funding from the EU (via [NGI pointer](https://pointer.ngi.eu/)) for "Deploying MirageOS", which boils down into three parts:
+* reproducible binary releases of MirageOS unikernels,
+* monitoring (and other devops features: profiling) and integration into existing infrastructure,
+* and further documentation and advertisement.
+
+Of course this will all be available open source. Please get in touch via eMail (team aT robur dot coop) if you're eager to integrate MirageOS unikernels into your infrastructure.
+
+We discovered at an initial meeting with an infrastructure provider that a DNS resolver is of interest - even more now that dnsmasq suffered from [dnspooq](https://www.jsof-tech.com/wp-content/uploads/2021/01/DNSpooq_Technical-Whitepaper.pdf). We are already working on an [implementation of DNSSec](https://github.com/mirage/ocaml-dns/pull/251).
+
+MirageOS unikernels are binary reproducible, and [infrastructure tools are available](https://github.com/rjbou/orb/pull/1). We are working hard on a web interface (and REST API - think of it as "Docker Hub for MirageOS unikernels"), and more tooling to verify reproducibility.
+
+### Conex - securing the supply chain
+
+Another funding from the [OCSF](http://ocaml-sf.org/) is to continue development and deploy [conex](https://github.com/hannesm/conex) - to bring trust into opam-repository. This is a great combination with the reproducible build efforts, and will bring much more trust into retrieving OCaml packages and using MirageOS unikernels.
+
+### MirageOS 4.0
+
+Mirage so far still uses ocamlbuild and ocamlfind for compiling the virtual machine binary. But the switch to dune is [close](https://github.com/mirage/mirage/issues/1195), a lot of effort has been done. This will make the developer experience of MirageOS much more smooth, with a per-unikernel monorepo workflow where you can push your changes to the individual libraries.
+
+## Footer
+
+If you want to support our work on MirageOS unikernels, please [donate to robur](https://robur.coop/Donate). I'm interested in feedback, either via [twitter](https://twitter.com/h4nnes), [hannesm@mastodon.social](https://mastodon.social/@hannesm) or an issue on the [data repository](https://github.com/hannesm/hannes.nqsb.io/issues).
