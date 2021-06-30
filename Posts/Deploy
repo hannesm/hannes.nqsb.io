@@ -1,0 +1,89 @@
+---
+title: Deploying binary MirageOS unikernels
+author: hannes
+tags: mirageos, deployment
+abstract: Finally, we provide reproducible binary MirageOS unikernels together with packages to reproduce them and setup your own builder
+---
+
+## Introduction
+
+MirageOS development focus has been a lot on tooling and the developer experience, but to accomplish [our](https://robur.coop) goal to "get MirageOS into production", we need to lower the barrier. This means for us to release binary unikernels. As described [earlier](/Posts/NGI), we received a grant for "Deploying MirageOS" from [NGI Pointer](https://pointer.ngi.eu) to work on the required infrastructure. This is joint work with [Reynir](https://reynir.dk/).
+
+We provide at [builds.robur.coop](https://builds.robur.coop) binary unikernel images (and supplementary software). Doing binary releases of MirageOS unikernels is challenging in two aspects: firstly to be useful for everyone, a binary unikernel should not contain any configuration (such as private keys, certificates, etc.). Secondly, the binaries should be [reproducible](https://reproducible-builds.org). This is crucial for security; everyone can reproduce the exact same binary and verify that our build service did only use the sources. No malware or backdoors included.
+
+This post describes how you can deploy MirageOS unikernels without compiling it from source, then dives into the two issues outlined above - configuration and reproducibility - and finally describes how to setup your own reproducible build infrastructure for MirageOS, and how to bootstrap it.
+
+## Deploying MirageOS unikernels from binary
+
+To execute a MirageOS unikernel, apart from a hypervisor (Xen/KVM/Muen), a tender (responsible for allocating host system resources and passing these to the unikernel) is needed. Using virtio, this is conventionally done with qemu on Linux, but its code size (and attack surface) is huge. For MirageOS, we develop [Solo5](https://github.com/solo5/solo5), a minimal tender. It supports *hvt* - hardware virtualization (Linux KVM, FreeBSD BHyve, OpenBSD VMM), *spt* - sandboxed process (a tight seccomp ruleset (only a handful of system calls allowed, no hardware virtualization needed), Linux only). Apart from that, [*muen*](https://muen.sk) (a hypervisor developed in Ada), *virtio* (for some cloud deployments), and *xen* (PVHv2 or Qubes 4.0) - [read more](https://github.com/Solo5/solo5/blob/master/docs/building.md). We deploy our unikernels as hvt with FreeBSD BHyve as hypervisor.
+
+On [builds.robur.coop](https://builds.robur.coop), next to the unikernel images, *solo5-hvt* packages ([FreeBSD 12.2](https://builds.robur.coop/job/solo5-hvt-freebsd/build/latest/), [Ubuntu 20.04](https://builds.robur.coop/job/solo5-hvt-ubuntu-20.04/build/latest/)) are provided - download the binary and install it. A [NixOS package](https://github.com/NixOS/nixpkgs/tree/master/pkgs/os-specific/solo5) is already available - please note that [soon](https://github.com/Solo5/solo5/pull/494) packaging will be much easier (and we will work on packages merged into distributions).
+
+When the tender is installed, download a unikernel image (e.g. the [traceroute](https://builds.robur.coop/job/traceroute/build/latest/) described in [an earlier post](/Posts/Traceroute)), and execute it:
+
+```
+$ solo5-hvt --net:service=tap0 -- traceroute.hvt --ipv4=10.0.42.2/24 --ipv4-gateway=10.0.42.1
+```
+
+If you plan to orchestrate MirageOS unikernels, you may be interested in [albatross](https://github.com/roburio/albatross) - we provide binary packages as well for this ([albatross FreeBSD](https://builds.robur.coop/job/albatross-freebsd/build/latest/) and [albatross Ubuntu 20.04](https://builds.robur.coop/job/albatross-ubuntu-20.04/build/latest/)). An upcoming post will go into further details of how to setup albatross.
+
+## MirageOS configuration
+
+A MirageOS unikernel has a specific purpose - composed of OCaml libraries - selected at compile time, which allows to only embed the required pieces. This reduces the attack surface drastically. At the same time, to be widely useful to multiple organisations, no configuration data must be embedded into the unikernel.
+
+Early MirageOS unikernels such as [mirage-www](https://github.com/mirage/mirage-www) embed content (blog posts, ..) and TLS certificates and private keys in the binary (using [crunch](https://github.com/mirage/ocaml-crunch)). The [Qubes firewall](https://github.com/mirage/qubes-mirage-firewall) (read the [blog post by Thomas](http://roscidus.com/blog/blog/2016/01/01/a-unikernel-firewall-for-qubesos/) for more information) used to include the firewall rules until [v0.6](https://github.com/mirage/qubes-mirage-firewall/releases/tag/v0.6) in the binary, since [v0.7](https://github.com/mirage/qubes-mirage-firewall/tree/v0.7) the rules are read dynamically from QubesDB. This is big usability improvement.
+
+We have several possibilities to provide configuration information in MirageOS, on the one hand via boot parameters (can be pre-filled at development time, and further refined at configuration time, but those passed at boot time take precedence). Boot parameters have a length limitation.
+
+Another option is to [use a block device](https://github.com/roburio/tlstunnel/) - where the TLS reverse proxy stores the configuration, modifiable via a TCP control socket (authentication using a shared hmac secret).
+
+Several other unikernels, such as [this website](https://github.com/Engil/Canopy) and [our CalDAV server](https://github.com/roburio/caldav), store the content in a remote git repository. The git URI and credentials (private key seed, host key fingerprint) are passed via boot parameter.
+
+Finally, another option that we take advantage of is to introduce a post-link step that rewrites the binary to embed configuration. The tool [caravan](https://github.com/dinosaure/caravan) developed by Romain that does this rewrite is used by our [openvpn router](https://github.com/roburio/openvpn/tree/robur/mirage-router) ([binary](https://builds.robur.coop/job/openvpn-router/build/latest/)).
+
+In the future, some configuration information - such as monitoring system, syslog sink, IP addresses - may be done via DHCP on one of the private network interfaces - this would mean that the DHCP server has some global configuration option, and the unikernels no longer require that many boot parameters. Another option we want to investigate is where the tender shares a file as read-only memory-mapped region from the host system to the guest system - but this is tricky considering all targets above (especially virtio and muen).
+
+## Behind the scenes: reproducible builds
+
+To provide a high level of assurance and trust, if you distribute binaries in 2021, you should have a recipe how they can be reproduced in a bit-by-bit identical way. This way, different organisations can run builders and rebuilders, and a user can decide to only use a binary if it has been reproduced by multiple organisations in different jurisdictions using different physical machines - to avoid malware being embedded in the binary.
+
+For a reproduction to be successful, you need to collect the checksums of all sources that contributed to the built, together with other things (host system packages, environment variables, etc.). Of course, you can record the entire OS and sources as a tarball (or file system snapshot) and distribute that - but this may be suboptimal in terms of bandwidth requirements.
+
+With opam, we already have precise tracking which opam packages are used, and since opam 2.1 the `opam switch export` includes [extra-files (patches)](https://github.com/ocaml/opam/pull/4040) and [records the VCS version](https://github.com/ocaml/opam/pull/4055). Based on this functionality, [orb](https://github.com/roburio/orb), an alternative command line application using the opam-client library, can be used to collect (a) the switch export, (b) host system packages, and (c) the environment variables. Only required environment variables are kept, all others are unset while conducting a build.
+
+The goal of reproducible builds can certainly be achieved in several ways, including to store all sources and used executables in a huge tarball (or docker container), which is preserved for rebuilders. The question of minimal trusted computing base and how such a container could be rebuild from sources in reproducible way are open.
+
+The opam-repository is a community repository, where packages are released to on a daily basis by a lot of OCaml developers. Package dependencies usually only use lower bounds of other packages, and the continuous integration system of the opam repository takes care that upon API changes all reverse dependencies include the right upper bounds. Using the head commit of opam-repository usually leads to a working package universe.
+
+For our MirageOS unikernels, we don't want to stay behind with ancient versions of libraries. That's why our automated building is done on a daily basis with the head commit of opam-repository. Since our unikernels are not part of the main opam repository (they include the configuration information which target to use, e.g. *hvt*), and we occasionally development versions of opam packages, we use [the unikernel-repo](https://git.robur.io/robur/unikernel-repo) as overlay.
+
+If no dependent package got a new release, the resulting binary has the same checksum. If any dependency was released with a newer release, this is picked up, and eventually the checksum changes.
+
+Each unikernel (and non-unikernel) job (e.g. [dns-primary](https://builds.robur.coop/job/dns-primary-git/build/latest/) outputs some artifacts:
+- the [binary image](https://builds.robur.coop/job/dns-primary-git/build/latest/f/bin/primary_git.hvt) (in `bin/`, unikernel image, OS package)
+- the [`build-environment`](https://builds.robur.coop/job/dns-primary-git/build/latest/f/build-environment) containing the environment variables used for this build
+- the [`system-packages`](https://builds.robur.coop/job/dns-primary-git/build/latest/f/system-packages) containing all packages installed on the host system
+- the [`opam-switch`](https://builds.robur.coop/job/dns-primary-git/build/latest/f/opam-switch) that contains all opam packages, including git commit or tarball with checksum, and potentially extra patches, used for this build
+- a job script and console output
+
+To reproduce such a built, you need to get the same operating system (OS, OS_FAMILY, OS_DISTRIBUTION, OS_VERSION in build-environment), the same set of system packages, and then you can `orb rebuild` which sets the environment variables and installs the opam packages from the opam-switch.
+
+You can [browse](https://builds.robur.coop/job/dns-primary-git/) the different builds, and if there are checksum changes, you can browse to a diff between the opam switches to reason whether the checksum change was intentional (e.g. [here](https://builds.robur.coop/compare/ba9ab091-9400-4e8d-ad37-cf1339114df8/23341f6b-cd26-48ab-9383-e71342455e81/opam-switch) the checksum of the unikernel changed when the x509 library was updated).
+
+The opam reproducible build infrastructure is driven by:
+- [orb](https://github.com/roburio/orb) conducting reproducible builds (packages [FreeBSD](https://builds.robur.coop/job/orb-freebsd/build/latest/), [Ubuntu 20.04](https://builds.robur.coop/job/orb-ubuntu-20.04/build/latest/))
+- [builder](https://github.com/roburio/builder) scheduling builds in contained environments (packages [FreeBSD](https://builds.robur.coop/job/builder-freebsd/build/latest/), [Ubuntu 20.04](https://builds.robur.coop/job/builder-ubuntu-20.04/build/latest/))
+- [builder-web](https://git.robur.io/robur/builder-web) storing builds in a database and providing a HTTP interface (packages [FreeBSD](https://builds.robur.coop/job/builder-web-freebsd/build/latest/))
+
+These tools are themselves reproducible, and built on a daily basis. The infrastructure executing the build jobs installs the most recent packages of orb and builder before conducting a build. This means that our build infrastructure is reproducible as well, and uses the latest code when it is released.
+
+## Conclusion
+
+Thanks to NGI funding we now have reproducible MirageOS binary builds available at [builds.robur.coop](https://builds.robur.coop). The underlying infrastructure is reproducible, available for multiple platforms (Ubuntu using docker, FreeBSD using jails), and can be easily bootstrapped from source (once you have OCaml and opam working, getting builder and orb should be easy). All components are open source software, mostly with permissive licenses.
+
+We also have an index over sha-256 checksum of binaries - in the case you find a running unikernel image where you forgot which exact packages were used, you can do a reverse lookup.
+
+We are aware that the web interface can be improved (PRs welcome). We will also work on the rebuilder setup and run some rebuilds.
+
+Please reach out to us (at team AT robur DOT coop) if you have feedback and suggestions.
+
